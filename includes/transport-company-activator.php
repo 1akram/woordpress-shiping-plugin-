@@ -10,7 +10,6 @@
  * @subpackage Plugin_Name/includes
  */
 
-use Carbon_Fields\Carbon_Fields;
 
 /**
  * Fired during plugin activation.
@@ -33,5 +32,8 @@ class Transport_Company_Activator
 	 * @since    1.0.0
 	 * 
 	 */
-	public static function activate() {}
+	public static function activate()
+	{
+		flush_rewrite_rules();
+	}
 }

@@ -36,12 +36,13 @@ if (! defined('WPINC')) {
  * Rename this for your plugin and update it as you release new versions.
  */
 define('PLUGIN_NAME_VERSION', '1.0.0');
+define('MY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/transport-company-activator.php
  */
-function activate_plugin_name()
+function activate_transport_company()
 {
 	require_once plugin_dir_path(__FILE__) . 'includes/transport-company-activator.php';
 	Transport_Company_Activator::activate();
@@ -51,14 +52,14 @@ function activate_plugin_name()
  * The code that runs during plugin deactivation.
  * This action is documented in includes/transport-company-deactivator.php
  */
-function deactivate_plugin_name()
+function deactivate_transport_company()
 {
 	require_once plugin_dir_path(__FILE__) . 'includes/transport-company-deactivator.php';
 	Transport_Company_Deactivator::deactivate();
 }
 
-register_activation_hook(__FILE__, 'activate_plugin_name');
-register_deactivation_hook(__FILE__, 'deactivate_plugin_name');
+register_activation_hook(__FILE__, 'activate_transport_company');
+register_deactivation_hook(__FILE__, 'deactivate_transport_company');
 
 /**
  * The core plugin class that is used to define internationalization,
@@ -75,10 +76,10 @@ require plugin_dir_path(__FILE__) . 'includes/transport-company.php';
  *
  * @since    1.0.0
  */
-function run_plugin_name()
+function run_plugin()
 {
 	require_once(plugin_dir_path(__FILE__) . '/vendor/autoload.php');
 	$plugin = new Plugin_Name();
 	$plugin->run();
 }
-run_plugin_name();
+run_plugin();
