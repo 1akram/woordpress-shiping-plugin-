@@ -8,37 +8,77 @@
  * @link       http://example.com
  * @since      1.0.0
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/admin/partials
+ * @package    Transport_Company
+ * @subpackage Transport_Company/admin/partials
  */
+
+require_once MY_PLUGIN_DIR . 'includes/transport-company-list-table.php';
+require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
+
+$classMap = [
+    "شركة Vanex" => "Vanex_Transport_Company",
+    "شركة المعيار" => "Miaar_Transport_Company",
+];
+$active_company = get_option('active_company', 'شركة Vanex');
+
+if (isset($classMap[$active_company])) {
+    $class_name = $classMap[$active_company];
+
+    if (class_exists($class_name)) {
+        $transport_company = new Context(new $class_name());
+        $access_token = $transport_company->authenticate();
+        $transport_company->getCities();
+    } else {
+        die('Error: Class for selected company not found.');
+    }
+} else {
+    die('Error: Selected company is not mapped to any class.');
+}
+
+// Save the selected company when the form is submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
+    update_option('active_company', sanitize_text_field($_POST['companies']));
+}
+
+
 ?>
+
 
 <div class="wrap">
     <h1><?php esc_html_e('My Plugin Settings', 'my-plugin-textdomain'); ?></h1>
 
-    <div>
+    <form method="POST">
         <?php settings_fields('my-plugin-settings-group'); ?>
         <?php do_settings_sections('my-plugin-settings'); ?>
 
+
         <div class="form-table">
-            <div valign="top" style="display: flex;justify-content:space-between;align-items:center">
+            <div valign="top" class="company-selection-row">
                 <div>
-                    <div scope="row" style="margin-bottom: 10px;">
-                        <label for="my_plugin_option2"><?php esc_html_e('Company', 'my-plugin-textdomain'); ?></label>
+                    <div scope="row" class="company-dropdown-label">
+                        <label for="companies-options"><?php esc_html_e('Company', 'my-plugin-textdomain'); ?></label>
                     </div>
                     <div>
-                        <select id="my_plugin_option2" name="my_plugin_options[option2]">
-                            <option value="شركة Vanex">شركة Vanex</option>
-                            <option value="شركة المعيار">شركة المعيار</option>
+                        <select id="companies-options" name="companies" onchange="this.form.submit()">
+                            <option value="شركة Vanex" <?php selected(get_option('active_company'), 'شركة Vanex'); ?>>شركة Vanex</option>
+                            <option value="شركة المعيار" <?php selected(get_option('active_company'), 'شركة المعيار'); ?>>شركة المعيار</option>
                         </select>
                     </div>
                 </div>
                 <div>
-                    <button class="button-primary">
+                    <button class="button-primary" onclick="submit">
                         Refresh
                     </button>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
+<div class="wrap">
+    <?php
+    $list_table = new Transport_Company_List_Table();
+    $list_table->print_table_description();
+    $list_table->prepare_items();
+    $list_table->display();
+    ?>
+</div>'

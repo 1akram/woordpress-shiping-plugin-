@@ -6,8 +6,8 @@
  * @link       http://example.com
  * @since      1.0.0
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
+ * @package    Transport_Company
+ * @subpackage Transport_Company/includes
  */
 
 
@@ -17,8 +17,8 @@
  * This class defines all code necessary to run during the plugin's activation.
  *
  * @since      1.0.0
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
+ * @package    Transport_Company
+ * @subpackage Transport_Company/includes
  * @author     Your Name <email@example.com>
  */
 class Transport_Company_Activator

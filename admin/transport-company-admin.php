@@ -6,8 +6,8 @@
  * @link       http://example.com
  * @since      1.0.0
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/admin
+ * @package    Transport_Company
+ * @subpackage Transport_Company/admin
  */
 
 /**
@@ -16,8 +16,8 @@
  * Defines the plugin name, version, and two examples hooks for how to
  * enqueue the admin-specific stylesheet and JavaScript.
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/admin
+ * @package    Transport_Company
+ * @subpackage Transport_Company/admin
  * @author     Your Name <email@example.com>
  */
 class Transportation_Company_Admin
@@ -73,14 +73,6 @@ class Transportation_Company_Admin
 	function my_plugin_main_page()
 	{
 		include_once(MY_PLUGIN_DIR . 'admin/partials/transport-company-admin-display.php');
-		require_once MY_PLUGIN_DIR . 'includes/transport-company-list-table.php';
-
-		echo '<div class="wrap">';
-		$list_table = new Transport_Company_List_Table();
-		$list_table->print_table_description();
-		$list_table->prepare_items();
-		$list_table->display();
-		echo '</div>';
 	}
 	/**
 	 * Register the stylesheets for the admin area.

@@ -6,8 +6,8 @@
  * @link       http://example.com
  * @since      1.0.0
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/public
+ * @package    Transport_Company
+ * @subpackage Transport_Company/public
  */
 
 /**
@@ -16,8 +16,8 @@
  * Defines the plugin name, version, and two examples hooks for how to
  * enqueue the public-facing stylesheet and JavaScript.
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/public
+ * @package    Transport_Company
+ * @subpackage Transport_Company/public
  * @author     Your Name <email@example.com>
  */
 class Transport_Company_Public

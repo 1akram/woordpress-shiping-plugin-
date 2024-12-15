@@ -17,36 +17,41 @@ class Transport_Company_List_Table extends WP_List_Table
     function get_columns()
     {
         return [
-            'wilaya'   => 'wilaya',
-            'price'   => 'price',
-            'home_price'   => 'home price',
+            'name'   => 'City',
+            'price'  => 'Price',
         ];
     }
 
     function prepare_items()
     {
+        $cities = get_option('cities', []);
+
+        // Pagination params
+        $per_page = 10;
+        $current_page = $this->get_pagenum();
+        $total_items = count($cities);
+
+        $this->items = array_slice($cities, ($current_page - 1) * $per_page, $per_page);
+
+        $this->set_pagination_args([
+            'total_items' => $total_items,
+            'per_page'    => $per_page,
+            'total_pages' => ceil($total_items / $per_page)
+        ]);
+
         $columns = $this->get_columns();
         $hidden = [];
         $sortable = $this->get_sortable_columns();
-
         $this->_column_headers = [$columns, $hidden, $sortable];
-
-        $this->items = [
-            ['ID' => 1, 'wilaya' => 'wilaya 1', 'price' => 1500, 'home_price' => 2000],
-            ['ID' => 2, 'wilaya' => 'wilaya 2', 'price' => 1500, 'home_price' => 2000],
-            ['ID' => 3, 'wilaya' => 'wilaya 3', 'price' => 1500, 'home_price' => 2000],
-            ['ID' => 4, 'wilaya' => 'wilaya 4', 'price' => 1500, 'home_price' => 2000],
-            ['ID' => 5, 'wilaya' => 'wilaya 5', 'price' => 1500, 'home_price' => 2000],
-        ];
     }
 
     function column_default($item, $column_name)
     {
         switch ($column_name) {
-            case 'wilaya':
+            case 'city':
+            case 'name':
             case 'price':
-            case 'home_price':
-                return $item[$column_name];
+                return $item[$column_name] ?? 'N/A';
             default:
                 return print_r($item, true);
         }

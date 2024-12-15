@@ -1,6 +1,6 @@
 {
     "require": {
-        "htmlburger/carbon-fields-plugin": "^3.6"
+        "vlucas/phpdotenv": "^5.6"
     },
     "config": {
         "allow-plugins": {

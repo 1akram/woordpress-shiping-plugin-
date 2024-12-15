@@ -2,3 +2,12 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
+.company-selection-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.company-dropdown-label {
+  margin-bottom: 10px;
+}

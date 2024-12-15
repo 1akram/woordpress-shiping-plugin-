@@ -9,8 +9,8 @@
  * @link       http://example.com
  * @since      1.0.0
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
+ * @package    Transport_Company
+ * @subpackage Transport_Company/includes
  */
 
 /**
@@ -23,11 +23,11 @@
  * version of the plugin.
  *
  * @since      1.0.0
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
+ * @package    Transport_Company
+ * @subpackage Transport_Company/includes
  * @author     Your Name <email@example.com>
  */
-class Plugin_Name
+class Transport_Company_Plugin
 {
 
 	/**
@@ -45,9 +45,9 @@ class Plugin_Name
 	 *
 	 * @since    1.0.0
 	 * @access   protected
-	 * @var      string    $plugin_name    The string used to uniquely identify this plugin.
+	 * @var      string    $Transport_Company    The string used to uniquely identify this plugin.
 	 */
-	protected $plugin_name;
+	protected $Transport_Company;
 
 	/**
 	 * The current version of the plugin.
@@ -74,7 +74,7 @@ class Plugin_Name
 		} else {
 			$this->version = '1.0.0';
 		}
-		$this->plugin_name = 'plugin-name';
+		$this->Transport_Company = 'plugin-name';
 
 		$this->load_dependencies();
 		$this->set_locale();
@@ -154,7 +154,7 @@ class Plugin_Name
 	private function define_admin_hooks()
 	{
 
-		$plugin_admin = new Transportation_Company_Admin($this->get_plugin_name(), $this->get_version());
+		$plugin_admin = new Transportation_Company_Admin($this->get_Transport_Company(), $this->get_version());
 
 		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
 		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
@@ -170,7 +170,7 @@ class Plugin_Name
 	private function define_public_hooks()
 	{
 
-		$plugin_public = new Transport_Company_Public($this->get_plugin_name(), $this->get_version());
+		$plugin_public = new Transport_Company_Public($this->get_Transport_Company(), $this->get_version());
 
 		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
 		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
@@ -193,9 +193,9 @@ class Plugin_Name
 	 * @since     1.0.0
 	 * @return    string    The name of the plugin.
 	 */
-	public function get_plugin_name()
+	public function get_Transport_Company()
 	{
-		return $this->plugin_name;
+		return $this->Transport_Company;
 	}
 
 	/**
