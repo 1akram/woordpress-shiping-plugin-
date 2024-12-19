@@ -36,12 +36,11 @@ class Transport_Company_Activator
 	{
 		flush_rewrite_rules();
 
+		// create the cities table
 		global $wpdb;
 
-		// Table name
 		$table_name = $wpdb->prefix . 'cities';
 
-		// SQL for table creation
 		$charset_collate = $wpdb->get_charset_collate();
 		$sql = "CREATE TABLE $table_name IF NOT EXISTS (
         id mediumint(9) NOT NULL AUTO_INCREMENT,

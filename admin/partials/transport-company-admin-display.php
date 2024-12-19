@@ -15,32 +15,33 @@
 require_once MY_PLUGIN_DIR . 'includes/transport-company-list-table.php';
 require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
 
-$classMap = [
-    "شركة Vanex" => "Vanex_Transport_Company",
-    "شركة المعيار" => "Miaar_Transport_Company",
-];
-$active_company = get_option('active_company', 'شركة Vanex');
-
-if (isset($classMap[$active_company])) {
-    $class_name = $classMap[$active_company];
-
-    if (class_exists($class_name)) {
-        $transport_company = new Context(new $class_name());
-        $access_token = $transport_company->authenticate();
-        $cities = $transport_company->getCities();
-        $transport_company->insertCities($cities);
-    } else {
-        die('Error: Class for selected company not found.');
-    }
-} else {
-    die('Error: Selected company is not mapped to any class.');
-}
 
 // Save the selected company when the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
     update_option('active_company', sanitize_text_field($_POST['companies']));
-}
 
+    $classMap = [
+        "شركة Vanex" => "Vanex_Transport_Company",
+        "شركة المعيار" => "Miaar_Transport_Company",
+    ];
+
+    $active_company = get_option('active_company', 'شركة Vanex');
+
+    if (isset($classMap[$active_company])) {
+        $class_name = $classMap[$active_company];
+
+        if (class_exists($class_name)) {
+            $transport_company = new Context(new $class_name());
+            $access_token = $transport_company->authenticate();
+            $cities = $transport_company->getCities();
+            $transport_company->insertCities($cities);
+        } else {
+            die('Error: Class for selected company not found.');
+        }
+    } else {
+        die('Error: Selected company is not mapped to any class.');
+    }
+}
 
 ?>
 

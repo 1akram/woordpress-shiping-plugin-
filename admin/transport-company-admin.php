@@ -52,6 +52,70 @@ class Transportation_Company_Admin
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 		add_action("admin_menu", array($this, "addAdminMenuItems"));
+
+		add_action('admin_enqueue_scripts', function () {
+			wp_enqueue_script('transport-company-script', plugin_dir_url(__FILE__) . 'js/transport-company-admin.js', ['jquery'], '1.0.0', true);
+			wp_localize_script('transport-company-script', 'transportCompanyAjax', [
+				'ajaxUrl' => admin_url('admin-ajax.php'),
+				'nonce' => wp_create_nonce('transport_company_nonce')
+			]);
+		});
+
+		add_action('wp_ajax_update_city', function () {
+			check_ajax_referer('transport_company_nonce', 'nonce');
+
+			global $wpdb;
+			$city_id = intval($_POST['city_id']);
+			$column_name = sanitize_text_field($_POST['column_name']);
+			$value = sanitize_text_field($_POST['value']);
+
+			if (!in_array($column_name, ['price'])) {
+				wp_send_json_error('Invalid column name');
+			}
+
+			$updated = $wpdb->update(
+				$wpdb->prefix . 'cities',
+				[$column_name => $value],
+				['id' => $city_id],
+				['%s'],
+				['%d']
+			);
+
+			if ($updated === false) {
+				wp_send_json_error('Database update failed');
+			}
+
+			wp_send_json_success();
+		});
+
+		add_filter('woocommerce_admin_order_actions', array($this, 'add_custom_order_action_button'), 10, 2);
+
+		add_action('admin_head', array($this, 'custom_order_action_buttons_css'));
+	}
+
+
+	public function add_custom_order_action_button($actions, $order)
+	{
+		$actions['custom_action'] = array(
+			'url'       => admin_url('admin.php?page=custom_page&order_id=' . $order->get_id()),
+			'name'      => __('ship', 'text-domain'),
+			'action'    => 'ship-action',
+		);
+		return $actions;
+	}
+
+	public function custom_order_action_buttons_css()
+	{
+
+
+		echo '
+		<style>
+			.ship-action::after { 
+				font-family: woocommerce !important;  
+				content: "\e01a" !important; 
+				}
+		</style>
+		';
 	}
 
 	/**

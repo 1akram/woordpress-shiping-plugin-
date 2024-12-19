@@ -26,7 +26,27 @@ class Transport_Company_List_Table extends WP_List_Table
 
     function prepare_items()
     {
-        $cities = get_option('cities', []);
+        require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
+
+        $active_company = get_option('active_company', 'شركة Vanex');
+        $cities = [];
+        $classMap = [
+            "شركة Vanex" => "Vanex_Transport_Company",
+            "شركة المعيار" => "Miaar_Transport_Company",
+        ];
+
+        if (isset($classMap[$active_company])) {
+            $class_name = $classMap[$active_company];
+
+            if (class_exists($class_name)) {
+                $transport_company = new Context(new $class_name());
+                $cities = json_decode(json_encode($transport_company->getCitiesFromLocalDB()), true);
+            } else {
+                die('Error: Class for selected company not found.');
+            }
+        } else {
+            die('Error: Selected company is not mapped to any class.');
+        }
 
         // Pagination params
         $per_page = 10;
@@ -51,10 +71,15 @@ class Transport_Company_List_Table extends WP_List_Table
     {
         switch ($column_name) {
             case 'name':
-                return esc_html($item[$column_name] ?? 'N/A');
+                return esc_html($item['name'] ?? 'N/A');
             case 'price':
                 $price = esc_attr($item[$column_name] ?? '0');
-                return "<input type='text' name='price[{$item['id']}]' value='{$price}' />";
+                return sprintf(
+                    '<input type="text" class="city-edit-field" data-id="%d" data-column="%s" value="%s">',
+                    $item['id'],
+                    $column_name,
+                    esc_attr($price)
+                );
             default:
                 return print_r($item, true);
         }

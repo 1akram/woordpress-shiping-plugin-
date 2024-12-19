@@ -3,7 +3,8 @@
 interface Transport_Company
 {
     public function authenticate(): string;
-    public function getCities(): array;
+    public function getCitiesFromDB(): array;
+    public function getCitiesFromServer(): array;
     public function insertCity(array $city): void;
 }
 
@@ -68,7 +69,7 @@ class Vanex_Transport_Company implements Transport_Company
         );
     }
 
-    function fetchCities()
+    function getCitiesFromDB(): array
     {
         global $wpdb;
 
@@ -78,7 +79,7 @@ class Vanex_Transport_Company implements Transport_Company
         return $results;
     }
 
-    public function getCities(): array
+    public function getCitiesFromServer(): array
     {
         $token = get_option('active_company_token');
 
@@ -98,7 +99,7 @@ class Vanex_Transport_Company implements Transport_Company
         $response = curl_exec($ch);
 
         if ($response === false) {
-            throw new Exception('Error fetching fees: ' . curl_error($ch));
+            throw new Exception('Error fetching cities: ' . curl_error($ch));
         }
 
         curl_close($ch);
@@ -121,32 +122,43 @@ class Miaar_Transport_Company implements Transport_Company
 
     public function authenticate(): string
     {
-        $data = ['email' => $_ENV['MIAAR_EMAIL'], 'password' => $_ENV['MIAAR_PASSWORD']];
+        // $data = ['email' => $_ENV['MIAAR_EMAIL'], 'password' => $_ENV['MIAAR_PASSWORD']];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
+        // $ch = curl_init();
+        // curl_setopt($ch, CURLOPT_URL, $this->url);
+        // curl_setopt($ch, CURLOPT_POST, 1);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // $response = curl_exec($ch);
 
-        if ($response === false) {
-            throw new Exception('Error during authentication: ' . curl_error($ch));
-        }
+        // if ($response === false) {
+        //     throw new Exception('Error during authentication: ' . curl_error($ch));
+        // }
 
-        curl_close($ch);
-        $decoded_response = json_decode($response, true);
+        // curl_close($ch);
+        // $decoded_response = json_decode($response, true);
 
-        if (!isset($decoded_response['data']['access_token'])) {
-            throw new Exception('Authentication failed. Invalid response format.');
-        }
+        // if (!isset($decoded_response['data']['access_token'])) {
+        //     throw new Exception('Authentication failed. Invalid response format.');
+        // }
 
-        return $decoded_response['data']['access_token'];
+        // return $decoded_response['data']['access_token'];
+        return '';
     }
 
     public function insertCity(array $city): void {}
 
-    public function getCities(): array
+    public function getCitiesFromDB(): array
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+
+        $results = $wpdb->get_results("SELECT * FROM $table_name", OBJECT);
+        return $results;
+    }
+
+    public function getCitiesFromServer(): array
     {
         return [];
     }
@@ -174,14 +186,26 @@ class Context
 
     public function insertCities(array $data): void
     {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+
+        $wpdb->query("DELETE FROM $table_name");
+
+        $wpdb->query("UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '$table_name'");
         foreach ($data as $city)
             $this->transport_company->insertCity($city);
     }
 
     public function getCities(): array
     {
-        $cities = $this->transport_company->getCities();
-        update_option('cities', $cities);
+        $cities = $this->transport_company->getCitiesFromServer();
+        return $cities;
+    }
+
+    public function getCitiesFromLocalDB(): array
+    {
+        $cities = $this->transport_company->getCitiesFromDB();
         return $cities;
     }
 }
