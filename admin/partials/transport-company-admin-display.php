@@ -27,7 +27,8 @@ if (isset($classMap[$active_company])) {
     if (class_exists($class_name)) {
         $transport_company = new Context(new $class_name());
         $access_token = $transport_company->authenticate();
-        $transport_company->getCities();
+        $cities = $transport_company->getCities();
+        $transport_company->insertCities($cities);
     } else {
         die('Error: Class for selected company not found.');
     }
@@ -45,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
 
 
 <div class="wrap">
-    <h1><?php esc_html_e('My Plugin Settings', 'my-plugin-textdomain'); ?></h1>
+
+    <h1><?php esc_html_e('Transport Company', 'transport-company-textdomain'); ?></h1>
 
     <form method="POST">
         <?php settings_fields('my-plugin-settings-group'); ?>
@@ -81,4 +83,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
     $list_table->prepare_items();
     $list_table->display();
     ?>
-</div>'
+</div>

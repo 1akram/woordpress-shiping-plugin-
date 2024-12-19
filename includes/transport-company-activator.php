@@ -35,5 +35,28 @@ class Transport_Company_Activator
 	public static function activate()
 	{
 		flush_rewrite_rules();
+
+		global $wpdb;
+
+		// Table name
+		$table_name = $wpdb->prefix . 'cities';
+
+		// SQL for table creation
+		$charset_collate = $wpdb->get_charset_collate();
+		$sql = "CREATE TABLE $table_name IF NOT EXISTS (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        name varchar(255) NOT NULL,
+        name_en varchar(255) NOT NULL,
+        code varchar(255) NOT NULL,
+        price float NOT NULL,
+        branch int(255) NOT NULL,
+        est_time varchar(255) NOT NULL,
+        region varchar(255) NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+
+		// Include WordPress dbDelta function
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta($sql);
 	}
 }

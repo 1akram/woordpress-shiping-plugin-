@@ -4,6 +4,7 @@ interface Transport_Company
 {
     public function authenticate(): string;
     public function getCities(): array;
+    public function insertCity(array $city): void;
 }
 
 class Vanex_Transport_Company implements Transport_Company
@@ -40,6 +41,41 @@ class Vanex_Transport_Company implements Transport_Company
         $access_token = $decoded_response['data']['access_token'];
         update_option('active_company_token', $decoded_response['data']['access_token']);
         return $access_token;
+    }
+
+    /**
+     * @param array $data
+     * 
+     * @return void
+     */
+    public function insertCity(array $city): void
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+        $wpdb->insert(
+            $table_name,
+            array(
+                "id" => $city['id'],
+                "name" => $city['name'],
+                "name_en" => $city['name_en'],
+                "code" => $city['code'],
+                "price" => $city['price'],
+                "branch" => $city['branch'],
+                "est_time" => $city['est_time'],
+                "region" => $city['region'],
+            )
+        );
+    }
+
+    function fetchCities()
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+
+        $results = $wpdb->get_results("SELECT * FROM $table_name", OBJECT);
+        return $results;
     }
 
     public function getCities(): array
@@ -108,6 +144,8 @@ class Miaar_Transport_Company implements Transport_Company
         return $decoded_response['data']['access_token'];
     }
 
+    public function insertCity(array $city): void {}
+
     public function getCities(): array
     {
         return [];
@@ -134,8 +172,16 @@ class Context
         $this->transport_company->authenticate();
     }
 
-    public function getCities(): void
+    public function insertCities(array $data): void
     {
-        update_option('cities', $this->transport_company->getCities());
+        foreach ($data as $city)
+            $this->transport_company->insertCity($city);
+    }
+
+    public function getCities(): array
+    {
+        $cities = $this->transport_company->getCities();
+        update_option('cities', $cities);
+        return $cities;
     }
 }

@@ -29,3 +29,12 @@
 if (! defined('WP_UNINSTALL_PLUGIN')) {
 	exit;
 }
+
+
+global $wpdb;
+
+// Table name
+$table_name = $wpdb->prefix . 'cities';
+
+// Delete table
+$wpdb->query("DROP TABLE IF EXISTS $table_name");

@@ -2,7 +2,6 @@
 if (!class_exists('WP_List_Table')) {
     require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
-
 class Transport_Company_List_Table extends WP_List_Table
 {
     function __construct()
@@ -10,15 +9,18 @@ class Transport_Company_List_Table extends WP_List_Table
         parent::__construct([
             'singular' => 'item',
             'plural'   => 'items',
-            'ajax'     => false
+            'ajax'     => false,
         ]);
+
+        // Handle form submission and save changes
+        $this->handle_form_submission();
     }
 
     function get_columns()
     {
         return [
-            'name'   => 'City',
-            'price'  => 'Price',
+            'name'  => 'City',
+            'price' => 'Price',
         ];
     }
 
@@ -36,7 +38,7 @@ class Transport_Company_List_Table extends WP_List_Table
         $this->set_pagination_args([
             'total_items' => $total_items,
             'per_page'    => $per_page,
-            'total_pages' => ceil($total_items / $per_page)
+            'total_pages' => ceil($total_items / $per_page),
         ]);
 
         $columns = $this->get_columns();
@@ -48,10 +50,11 @@ class Transport_Company_List_Table extends WP_List_Table
     function column_default($item, $column_name)
     {
         switch ($column_name) {
-            case 'city':
             case 'name':
+                return esc_html($item[$column_name] ?? 'N/A');
             case 'price':
-                return $item[$column_name] ?? 'N/A';
+                $price = esc_attr($item[$column_name] ?? '0');
+                return "<input type='text' name='price[{$item['id']}]' value='{$price}' />";
             default:
                 return print_r($item, true);
         }
