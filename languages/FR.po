@@ -1,0 +1,45 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Transportation company\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-12-21 10:14+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: \n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.6.14; wp-6.7.1\n"
+"X-Domain: transportation-company-textdomain"
+
+#: includes/transport-company-list-table.php:22
+msgid "City"
+msgstr "Cité"
+
+#: includes/transport-company-list-table.php:23
+msgid "Price"
+msgstr "Prix"
+
+#: admin/partials/transport-company-admin-display.php:72
+msgid "Refresh"
+msgstr "Rafraîchir"
+
+#: admin/partials/transport-company-admin-display.php:61
+msgid "Company"
+msgstr "Enterprise"
+
+#. Description of the plugin
+msgid "Plugin responsible for handling transportation companies"
+msgstr "Plugin responsable de la gestion des entreprises de transport"
+
+#: admin/partials/transport-company-admin.php:211
+msgid "All companies"
+msgstr "tout les entreprises"
+
+#. Name of the plugin
+msgid "Transportation company"
+msgstr "entreprises de transport"
+

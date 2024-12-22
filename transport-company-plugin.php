@@ -16,6 +16,7 @@
  * Plugin Name:       Transportation company
  * Description:       Plugin responsible for handling transportation companies
  * Version:           1.0.0
+ * Text Domain: transportation-company-textdomain
  */
 
 // If this file is called directly, abort.
