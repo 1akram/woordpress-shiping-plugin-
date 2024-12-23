@@ -3,7 +3,6 @@ jQuery(document).ready(function ($) {
     const cityId = $(this).data("id");
     const columnName = $(this).data("column");
     const newValue = $(this).val();
-    console.log("fuck");
 
     $.post(
       transportCompanyAjax.ajaxUrl,
@@ -16,7 +15,7 @@ jQuery(document).ready(function ($) {
       },
       function (response) {
         if (response.success) {
-          alert("City updated successfully!");
+          // alert("City updated successfully!");
         } else {
           alert("Failed to update city: " + response.data);
         }

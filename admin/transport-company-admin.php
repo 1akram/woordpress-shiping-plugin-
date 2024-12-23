@@ -51,8 +51,20 @@ class Transportation_Company_Admin
 	{
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
-		add_action("admin_menu", array($this, "addAdminMenuItems"));
+		// Add item to menu
+		add_action("admin_menu", 	 function () {
+			add_menu_page(
+				'Transportation',      // Page title
+				__('All companies', 'transportation-company-textdomain'),           // Menu title
+				'manage_options',      // Capability required to access this menu
+				'transportation-companies',           // Slug of the menu
+				array($this, 'my_plugin_main_page'), // Callback function to render the page
+				'dashicons-car', // Icon URL or Dashicon class
+				6                      // Position in the menu order
+			);
+		});
 
+		// Add JS script to handle transport company logic
 		add_action('admin_enqueue_scripts', function () {
 			wp_enqueue_script('transport-company-script', plugin_dir_url(__FILE__) . 'js/transport-company-admin.js', ['jquery'], '1.0.0', true);
 			wp_localize_script('transport-company-script', 'transportCompanyAjax', [
@@ -61,6 +73,7 @@ class Transportation_Company_Admin
 			]);
 		});
 
+		// Handle data update in sqlite database
 		add_action('wp_ajax_update_city', function () {
 			check_ajax_referer('transport_company_nonce', 'nonce');
 
@@ -88,27 +101,8 @@ class Transportation_Company_Admin
 			wp_send_json_success();
 		});
 
-		add_filter('woocommerce_admin_order_actions', array($this, 'add_custom_order_action_button'), 10, 2);
-
-		add_action('admin_head', array($this, 'custom_order_action_buttons_css'));
-	}
-
-
-	public function add_custom_order_action_button($actions, $order)
-	{
-		$actions['custom_action'] = array(
-			'url'       => admin_url('admin.php?page=custom_page&order_id=' . $order->get_id()),
-			'name'      => __('ship', 'text-domain'),
-			'action'    => 'ship-action',
-		);
-		return $actions;
-	}
-
-	public function custom_order_action_buttons_css()
-	{
-
-
-		echo '
+		add_action('admin_head',  function () {
+			echo '
 		<style>
 			.ship-action::after { 
 				font-family: woocommerce !important;  
@@ -116,22 +110,144 @@ class Transportation_Company_Admin
 				}
 		</style>
 		';
-	}
+		});
 
-	/**
-	 * @return [type]
-	 */
-	public function addAdminMenuItems()
-	{
-		add_menu_page(
-			'Transportation',      // Page title
-			'All companies',           // Menu title
-			'manage_options',      // Capability required to access this menu
-			'transportation-companies',           // Slug of the menu
-			array($this, 'my_plugin_main_page'), // Callback function to render the page
-			'dashicons-car', // Icon URL or Dashicon class
-			6                      // Position in the menu order
+		// Add new action button in the woocommerce orders list
+		add_filter(
+			'woocommerce_admin_order_actions',
+			function ($actions, $order) {
+				$actions['custom_action'] = array(
+					'url'    => admin_url('admin-ajax.php?action=ship_order&order_id=' . $order->get_id()),
+					'name'      => __('ship', 'text-domain'),
+					'action'    => 'ship-action',
+
+				);
+				return $actions;
+			},
+			10,
+			2
 		);
+
+		add_action('admin_footer', function () {
+			$screen = get_current_screen();
+			if ($screen->id !== 'woocommerce_page_wc-orders') {
+				return;
+			}
+?>
+			<div id="custom-modal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; background:#fff; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+				<h2><?php esc_html_e('Ship order', 'your-textdomain'); ?></h2>
+				<form id="custom-modal-form">
+					<div class="form-row">
+						<div>
+							<label for="description"><?php esc_html_e('description:', 'your-textdomain'); ?></label><br>
+							<input type="text" id="description" name="description" required />
+						</div>
+						<div>
+							<label for="city"><?php esc_html_e('city:', 'your-textdomain'); ?></label><br>
+							<input type="text" id="city" name="city" required />
+						</div>
+					</div>
+					<div class="form-row">
+						<div>
+							<label for="reciever"><?php esc_html_e('reciever:', 'your-textdomain'); ?></label><br>
+							<input type="text" id="reciever" name="reciever" required />
+						</div>
+						<div>
+							<label for="phone"><?php esc_html_e('phone:', 'your-textdomain'); ?></label><br>
+							<input type="text" id="phone" name="phone" required />
+						</div>
+					</div>
+					<div class="form-row">
+
+						<div>
+							<label for="unified_city"><?php esc_html_e('unified_city:', 'your-textdomain'); ?></label><br>
+							<input type="text" id="unified_city" name="unified_city" required />
+						</div>
+					</div>
+
+
+
+					<input type="hidden" id="order-id" name="order_id" />
+					<br><br>
+					<button type="submit" class="button button-primary"><?php esc_html_e('Submit', 'your-textdomain'); ?></button>
+					<button type="button" class="button button-secondary" id="custom-modal-close"><?php esc_html_e('Close', 'your-textdomain'); ?></button>
+				</form>
+			</div>
+
+<?php
+		});
+
+		add_action('admin_enqueue_scripts', function () {
+			wp_enqueue_script('custom-ship-button', plugin_dir_url(__FILE__) . 'js/custom-ship-button.js', array('jquery'), '1.0', true);
+			wp_localize_script('custom-ship-button', 'orderData', array(
+				'ajaxUrl' => admin_url('admin-ajax.php'),
+				'nonce' => wp_create_nonce('ship_order_nonce')
+			));
+		});
+
+		// Add AJAX action for logged-in users (if needed, you can also create one for guests)
+		add_action('wp_ajax_ship_order', function () {
+			// Verify the nonce for security
+			if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'ship_order_nonce')) {
+				wp_send_json_error('Invalid nonce');
+			}
+
+			// Check if the order ID is provided
+			if (isset($_POST['order_id'])) {
+				$order_id = intval($_POST['order_id']);
+
+				// Get the WooCommerce order
+				$order = wc_get_order($order_id);
+
+				// Check if the order exists
+				if (!$order) {
+					wp_send_json_error('Order not found');
+				}
+
+				// Prepare the order data (example: you can customize this as needed)
+				$order_data = array(
+					'id'            => $order->get_id(),
+					'status'        => $order->get_status(),
+					'total'         => $order->get_total(),
+					'date_created'  => $order->get_date_created()->format('Y-m-d H:i:s'),
+					'customer_name' => $order->get_billing_first_name() . ' ' . $order->get_billing_last_name(),
+					'date_created' => $order->get_date_created(),
+					'date_modified' => $order->get_date_modified(),
+					'total' => $order->get_total(),
+					'currency' => $order->get_currency(),
+					'payment_method' => $order->get_payment_method(),
+					'payment_method_title' => $order->get_payment_method_title(),
+					'get_user_id' => $order->get_user_id(),
+					'billing_first_name' => $order->get_billing_first_name(), // Customer's billing first name
+					'billing_last_name' => $order->get_billing_last_name(),  // Customer's billing last name
+					'billing_email' => $order->get_billing_email(),      // Customer's billing email
+					'billing_phone' => $order->get_billing_phone(),      // Customer's billing phone
+					'billing_address_1' => $order->get_billing_address_1(),  // Billing address line 1
+					'billing_address_2' => $order->get_billing_address_2(),  // Billing address line 2
+					'billing_city' => $order->get_billing_city(),       // Billing city
+					'billing_state' => $order->get_billing_state(),      // Billing state
+					'billing_postcode' => $order->get_billing_postcode(),   // Billing postcode
+					'billing_country' => $order->get_billing_country(),    // Billing country
+					'shipping_first_name' => $order->get_shipping_first_name(), // Shipping first name
+					'shipping_last_name' => $order->get_shipping_last_name(),  // Shipping last name
+					'shipping_address_1' => $order->get_shipping_address_1(),  // Shipping address line 1
+					'shipping_address_2' => $order->get_shipping_address_2(),  // Shipping address line 2
+					'shipping_city' => $order->get_shipping_city(),       // Shipping city
+					'shipping_state' => $order->get_shipping_state(),      // Shipping state
+					'shipping_postcode' => $order->get_shipping_postcode(),   // Shipping postcode
+					'products' => $order->get_items()
+				);
+				$order = wc_get_order($order_id);
+
+				// Return the order data as a JSON response
+				wp_send_json_success($order_data);
+			} else {
+				wp_send_json_error('Order ID missing');
+			}
+
+			// Always call exit() to stop further processing
+			exit;
+		});
 	}
 
 	function my_plugin_main_page()
@@ -157,7 +273,7 @@ class Transportation_Company_Admin
 		 * class.
 		 */
 
-		wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/plugin-name-admin.css', array(), $this->version, 'all');
+		wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/transport-company-admin.css', array(), $this->version, 'all');
 	}
 
 	/**
