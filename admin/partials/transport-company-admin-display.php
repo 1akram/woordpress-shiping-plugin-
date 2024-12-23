@@ -15,7 +15,6 @@
 require_once MY_PLUGIN_DIR . 'includes/transport-company-list-table.php';
 require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
 
-
 // Save the selected company when the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
     update_option('active_company', sanitize_text_field($_POST['companies']));
@@ -32,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
 
         if (class_exists($class_name)) {
             $transport_company = new Context(new $class_name());
-            $access_token = $transport_company->authenticate();
+            $transport_company->authenticate();
             $cities = $transport_company->getCities();
             $transport_company->insertCities($cities);
         } else {
@@ -59,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
             <div valign="top" class="company-selection-row">
                 <div>
                     <div scope="row" class="company-dropdown-label">
-                        <label for="companies-options"><?php esc_html_e('Company', 'my-plugin-textdomain'); ?></label>
+                        <label for="companies-options"><?php esc_html_e('Company', 'transportation-company-textdomain'); ?></label>
                     </div>
                     <div>
                         <select id="companies-options" name="companies" onchange="this.form.submit()">
@@ -70,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
                 </div>
                 <div>
                     <button class="button-primary" onclick="submit">
-                        Refresh
+                        <?php esc_html_e('Refresh', 'transportation-company-textdomain'); ?>
                     </button>
                 </div>
             </div>

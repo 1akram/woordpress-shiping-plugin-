@@ -3,9 +3,10 @@
 interface Transport_Company
 {
     public function authenticate(): string;
+    public function insertCity(array $city): void;
+    public function requestDelivery(array $data): void;
     public function getCitiesFromDB(): array;
     public function getCitiesFromServer(): array;
-    public function insertCity(array $city): void;
 }
 
 class Vanex_Transport_Company implements Transport_Company
@@ -44,11 +45,6 @@ class Vanex_Transport_Company implements Transport_Company
         return $access_token;
     }
 
-    /**
-     * @param array $data
-     * 
-     * @return void
-     */
     public function insertCity(array $city): void
     {
         global $wpdb;
@@ -67,6 +63,39 @@ class Vanex_Transport_Company implements Transport_Company
                 "region" => $city['region'],
             )
         );
+    }
+
+    public function requestDelivery(array $data): void
+    {
+        $token = get_option('active_company_token');
+
+        if (!$token) {
+            throw new Exception('Authentication token is missing. Please log in again.');
+        }
+
+        $headers = [
+            'Content-Type'  =>
+            'application/json',
+            'Authorization: Bearer ' . $token,
+        ];
+
+        $response = wp_remote_post($this->url . '/customer/collects', array(
+            'method'  => 'POST',
+            'body'    => $data,
+            'headers' => $headers,
+        ));
+
+        if (is_wp_error($response)) {
+            wp_send_json_error(array('message' => $response->get_error_message()));
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if ($body['status'] === 'success') {
+            wp_send_json_success(array('message' => 'Delivery request processed successfully.'));
+        } else {
+            wp_send_json_error(array('message' => $body['error'] ?? 'Unknown error.'));
+        }
     }
 
     function getCitiesFromDB(): array
@@ -148,6 +177,8 @@ class Miaar_Transport_Company implements Transport_Company
 
     public function insertCity(array $city): void {}
 
+    public function requestDelivery(array $data): void {}
+
     public function getCitiesFromDB(): array
     {
         global $wpdb;
@@ -207,5 +238,10 @@ class Context
     {
         $cities = $this->transport_company->getCitiesFromDB();
         return $cities;
+    }
+
+    public function requestDelivery(array $data)
+    {
+        return $this->transport_company->requestDelivery($data);
     }
 }

@@ -19,8 +19,8 @@ class Transport_Company_List_Table extends WP_List_Table
     function get_columns()
     {
         return [
-            'name'  => 'City',
-            'price' => 'Price',
+            'name'  => __('City', 'transportation-company-textdomain'),
+            'price' => __('Price', 'transportation-company-textdomain'),
         ];
     }
 
