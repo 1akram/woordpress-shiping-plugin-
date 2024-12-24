@@ -135,14 +135,20 @@ class Transportation_Company_Admin
 			}
 ?>
 			<div id="custom-modal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; background:#fff; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
-				<h2><?php esc_html_e('Ship order', 'your-textdomain'); ?></h2>
+				<div id="modal-title">
+					<h2><?php esc_html_e('Ship order', 'your-textdomain'); ?></h2>
+				</div>
+				<div id="modal-loading" style="display:none;">
+					<p>Loading...</p>
+					<div class="spinner"></div>
+				</div>
 				<form id="custom-modal-form">
 					<div class="form-row">
 						<div>
 							<label for="description"><?php esc_html_e('description:', 'your-textdomain'); ?></label><br>
 							<input type="text" id="description" name="description" required />
 						</div>
-						<div>
+						<div class="ui-widget" style="position:relative;z-index: 999999;">
 							<label for="city"><?php esc_html_e('city:', 'your-textdomain'); ?></label><br>
 							<input type="text" id="city" name="city" required />
 						</div>
@@ -157,16 +163,6 @@ class Transportation_Company_Admin
 							<input type="text" id="phone" name="phone" required />
 						</div>
 					</div>
-					<div class="form-row">
-
-						<div>
-							<label for="unified_city"><?php esc_html_e('unified_city:', 'your-textdomain'); ?></label><br>
-							<input type="text" id="unified_city" name="unified_city" required />
-						</div>
-					</div>
-
-
-
 					<input type="hidden" id="order-id" name="order_id" />
 					<br><br>
 					<button type="submit" class="button button-primary"><?php esc_html_e('Submit', 'your-textdomain'); ?></button>
@@ -178,6 +174,9 @@ class Transportation_Company_Admin
 		});
 
 		add_action('admin_enqueue_scripts', function () {
+			wp_enqueue_script('jquery-ui-autocomplete');
+			wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
+
 			wp_enqueue_script('custom-ship-button', plugin_dir_url(__FILE__) . 'js/custom-ship-button.js', array('jquery'), '1.0', true);
 			wp_localize_script('custom-ship-button', 'orderData', array(
 				'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -247,6 +246,64 @@ class Transportation_Company_Admin
 
 			// Always call exit() to stop further processing
 			exit;
+		});
+
+
+		add_action('wp_ajax_autocomplete_search', function () {
+			global $wpdb;
+			$name = sanitize_text_field($_GET['name']);
+			$table_name = $wpdb->prefix . 'cities';
+			$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name WHERE name_en LIKE %s", '%' . $wpdb->esc_like($name) . '%'), OBJECT);
+
+			wp_send_json($results);
+		});
+
+		add_action('wp_ajax_request_delivery', function () {
+			global $wpdb;
+			require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
+
+			if (!isset($_POST['order_data']) || !isset($_POST['order_data']['city_name'])) {
+				wp_send_json_error(['message' => 'Invalid data received.']);
+				wp_die();
+			}
+
+			$order_data = $_POST['order_data'];
+			$city_name = $order_data['city_name'];
+
+			$table_name = $wpdb->prefix . 'cities';
+
+			$city_id_query = $wpdb->prepare(
+				"SELECT id FROM {$table_name} WHERE name_en = %s",
+				$city_name
+			);
+			$city_id_result = $wpdb->get_var($city_id_query);
+
+			if (!$city_id_result) {
+				wp_send_json_error(['message' => 'City not found.']);
+				wp_die();
+			}
+
+			$order_data['city'] = $city_id_result;
+
+			$active_company = get_option('active_company', 'شركة Vanex');
+
+			$classMap = [
+				"شركة Vanex" => "Vanex_Transport_Company",
+				"شركة المعيار" => "Miaar_Transport_Company",
+			];
+
+			if (!isset($classMap[$active_company]) || !class_exists($classMap[$active_company])) {
+				wp_send_json_error(['message' => 'Transport company class not found.']);
+				wp_die();
+			}
+
+			$class_name = $classMap[$active_company];
+
+			$transport_company = new Context(new $class_name());
+			$transport_company->requestDelivery($order_data);
+
+
+			wp_die();
 		});
 	}
 

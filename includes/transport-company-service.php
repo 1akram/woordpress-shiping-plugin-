@@ -74,27 +74,43 @@ class Vanex_Transport_Company implements Transport_Company
         }
 
         $headers = [
-            'Content-Type'  =>
-            'application/json',
-            'Authorization: Bearer ' . $token,
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
         ];
 
-        $response = wp_remote_post($this->url . '/customer/collects', array(
+        $response = wp_remote_post($this->url . '/customer/package', [
             'method'  => 'POST',
-            'body'    => $data,
+            'body'    => json_encode($data),
             'headers' => $headers,
-        ));
+        ]);
 
         if (is_wp_error($response)) {
-            wp_send_json_error(array('message' => $response->get_error_message()));
+            wp_send_json_error([
+                'message' => $response->get_error_message(),
+            ]);
+            return;
         }
 
-        $body = json_decode(wp_remote_retrieve_body($response), true);
+        // Retrieve and decode the response body.
+        $body = wp_remote_retrieve_body($response);
+        $decoded_body = json_decode($body, true);
 
-        if ($body['status'] === 'success') {
-            wp_send_json_success(array('message' => 'Delivery request processed successfully.'));
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error([
+                'message' => 'Invalid response format received from the server.',
+            ]);
+            return;
+        }
+
+        if (isset($decoded_body['status']) && $decoded_body['status'] === 'success') {
+            wp_send_json_success([
+                'message' => 'Delivery request processed successfully.',
+            ]);
         } else {
-            wp_send_json_error(array('message' => $body['error'] ?? 'Unknown error.'));
+            $error_message = $decoded_body['message'] ?? 'Unknown error occurred while processing the delivery request.';
+            wp_send_json_error([
+                'message' => $error_message,
+            ]);
         }
     }
 

@@ -27,8 +27,33 @@
 					justify-content: center;
 				} */
 
+.ui-autocomplete-input {
+  z-index: 9999999 !important;
+}
+
 .form-row {
   display: flex;
   flex-direction: row;
   gap: 10px;
+}
+.form-row > div {
+  width: 100%;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
