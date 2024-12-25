@@ -51,6 +51,18 @@ class Transportation_Company_Admin
 	{
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
+
+		add_action('admin_enqueue_scripts', 'my_plugin_check_action_checkbox');
+
+		function my_plugin_check_action_checkbox()
+		{
+			global $pagenow;
+			echo $pagenow;
+			wp_enqueue_script('my-plugin-script', plugin_dir_url(__FILE__) . 'js/woocommerce-action-button.js', array('jquery'), '1.0', true);
+			if ($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'shop_order') {
+			}
+		}
+
 		// Add item to menu
 		add_action("admin_menu", 	 function () {
 			add_menu_page(
@@ -101,16 +113,6 @@ class Transportation_Company_Admin
 			wp_send_json_success();
 		});
 
-		add_action('admin_head',  function () {
-			echo '
-		<style>
-			.ship-action::after { 
-				font-family: woocommerce !important;  
-				content: "\e01a" !important; 
-				}
-		</style>
-		';
-		});
 
 		// Add new action button in the woocommerce orders list
 		add_filter(
@@ -140,7 +142,6 @@ class Transportation_Company_Admin
 				</div>
 				<div id="modal-loading" style="display:none;">
 					<p>Loading...</p>
-					<div class="spinner"></div>
 				</div>
 				<form id="custom-modal-form">
 					<div class="form-row">
@@ -353,6 +354,6 @@ class Transportation_Company_Admin
 		 * class.
 		 */
 
-		wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/plugin-name-admin.js', array('jquery'), $this->version, false);
+		// wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/plugin-name-admin.js', array('jquery'), $this->version, false);
 	}
 }
