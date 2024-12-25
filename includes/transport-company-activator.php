@@ -42,20 +42,25 @@ class Transport_Company_Activator
 		$table_name = $wpdb->prefix . 'cities';
 
 		$charset_collate = $wpdb->get_charset_collate();
-		$sql = "CREATE TABLE $table_name IF NOT EXISTS (
-        id mediumint(9) NOT NULL AUTO_INCREMENT,
-        name varchar(255) NOT NULL,
-        name_en varchar(255) NOT NULL,
-        code varchar(255) NOT NULL,
-        price float NOT NULL,
-        branch int(255) NOT NULL,
-        est_time varchar(255) NOT NULL,
-        region varchar(255) NOT NULL,
-        PRIMARY KEY  (id)
-    ) $charset_collate;";
+		$sql = "CREATE TABLE $table_name (
+    id MEDIUMINT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    name_en VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    price FLOAT NOT NULL,
+    branch INT NOT NULL,
+    est_time VARCHAR(255) NOT NULL,
+    region VARCHAR(255) NOT NULL,
+    PRIMARY KEY  (id)
+) $charset_collate;";
 
 		// Include WordPress dbDelta function
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta($sql);
+
+		// Log errors (if any)
+		if (!empty($wpdb->last_error)) {
+			error_log('Database error: ' . $wpdb->last_error);
+		}
 	}
 }

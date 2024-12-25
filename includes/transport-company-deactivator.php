@@ -33,5 +33,11 @@ class Transport_Company_Deactivator
 	public static function deactivate()
 	{
 		flush_rewrite_rules();
+
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'cities';
+
+		$wpdb->query("DROP TABLE IF EXISTS $table_name");
 	}
 }
