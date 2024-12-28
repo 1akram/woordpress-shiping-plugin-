@@ -52,16 +52,10 @@ class Transportation_Company_Admin
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
-		add_action('admin_enqueue_scripts', 'my_plugin_check_action_checkbox');
-
-		function my_plugin_check_action_checkbox()
-		{
-			global $pagenow;
-			echo $pagenow;
+		// handle add action columns to woocommerce orders table
+		add_action('admin_enqueue_scripts', function () {
 			wp_enqueue_script('my-plugin-script', plugin_dir_url(__FILE__) . 'js/woocommerce-action-button.js', array('jquery'), '1.0', true);
-			if ($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'shop_order') {
-			}
-		}
+		});
 
 		// Add item to menu
 		add_action("admin_menu", 	 function () {
@@ -112,7 +106,6 @@ class Transportation_Company_Admin
 
 			wp_send_json_success();
 		});
-
 
 		// Add new action button in the woocommerce orders list
 		add_filter(
@@ -274,7 +267,7 @@ class Transportation_Company_Admin
 			$table_name = $wpdb->prefix . 'cities';
 
 			$city_id_query = $wpdb->prepare(
-				"SELECT id FROM {$table_name} WHERE name_en = %s",
+				"SELECT id FROM {$table_name} WHERE name_en = %s OR name = %s",
 				$city_name
 			);
 			$city_id_result = $wpdb->get_var($city_id_query);
@@ -331,7 +324,7 @@ class Transportation_Company_Admin
 		 * class.
 		 */
 
-		wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/transport-company-admin.css', array(), $this->version, 'all');
+		// wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/transport-company-admin.css', array(), $this->version, 'all');
 	}
 
 	/**
@@ -341,7 +334,6 @@ class Transportation_Company_Admin
 	 */
 	public function enqueue_scripts()
 	{
-
 		/**
 		 * This function is provided for demonstration purposes only.
 		 *
