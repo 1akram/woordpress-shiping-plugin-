@@ -125,9 +125,17 @@ class Transportation_Company_Admin
 
 		add_action('admin_footer', function () {
 			$screen = get_current_screen();
+
 			if ($screen->id !== 'woocommerce_page_wc-orders') {
 				return;
 			}
+
+			$order = wc_get_order(14);
+
+			$order->update_meta_data('package-code', '-16870-SBH-4728489');
+
+			$order->save();
+
 ?>
 			<div id="custom-modal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; background:#fff; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
 				<div id="modal-title">
@@ -138,6 +146,7 @@ class Transportation_Company_Admin
 				</div>
 				<form id="custom-modal-form">
 					<div class="form-row">
+						<input type="text" id="id" name="id" required style="display: none;" />
 						<div>
 							<label for="description"><?php esc_html_e('description:', 'your-textdomain'); ?></label><br>
 							<input type="text" id="description" name="description" required />
@@ -163,7 +172,6 @@ class Transportation_Company_Admin
 					<button type="button" class="button button-secondary" id="custom-modal-close"><?php esc_html_e('Close', 'your-textdomain'); ?></button>
 				</form>
 			</div>
-
 <?php
 		});
 
@@ -188,7 +196,7 @@ class Transportation_Company_Admin
 			// Check if the order ID is provided
 			if (isset($_POST['order_id'])) {
 				$order_id = intval($_POST['order_id']);
-
+				update_option('current_order', $order_id);
 				// Get the WooCommerce order
 				$order = wc_get_order($order_id);
 
@@ -230,8 +238,6 @@ class Transportation_Company_Admin
 					'shipping_postcode' => $order->get_shipping_postcode(),   // Shipping postcode
 					'products' => $order->get_items()
 				);
-				$order = wc_get_order($order_id);
-
 				// Return the order data as a JSON response
 				wp_send_json_success($order_data);
 			} else {
@@ -247,7 +253,7 @@ class Transportation_Company_Admin
 			global $wpdb;
 			$name = sanitize_text_field($_GET['name']);
 			$table_name = $wpdb->prefix . 'cities';
-			$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name WHERE name_en LIKE %s", '%' . $wpdb->esc_like($name) . '%'), OBJECT);
+			$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name WHERE name_en LIKE %s OR name LIKE %s", '%' . $wpdb->esc_like($name) . '%', '%' . $wpdb->esc_like($name) . '%'), OBJECT);
 
 			wp_send_json($results);
 		});
@@ -267,8 +273,7 @@ class Transportation_Company_Admin
 			$table_name = $wpdb->prefix . 'cities';
 
 			$city_id_query = $wpdb->prepare(
-				"SELECT id FROM {$table_name} WHERE name_en = %s OR name = %s",
-				$city_name
+				"SELECT id FROM $table_name WHERE name_en='$city_name' OR name='$city_name'"
 			);
 			$city_id_result = $wpdb->get_var($city_id_query);
 
@@ -299,6 +304,169 @@ class Transportation_Company_Admin
 
 			wp_die();
 		});
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/package-accepted', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_package_accepted_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_package_accepted_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/package-delivered', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_package_delivered_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_package_delivered_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/package-storage-returned', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_package_storage_returned_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_package_storage_returned_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/bundle-returned', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_bundle_returned_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_bundle_returned_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/settlement', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_settlement_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_settlement_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_filter('woocommerce_package_rates', 'override_woocommerce_shipping_rates', 10, 2);
+
+		function override_woocommerce_shipping_rates($rates, $package)
+		{
+			global $wpdb;
+
+			// Fetch the destination city from the shipping address
+			$destination_city = $package['destination']['city'];
+
+			// Query the wp_cities table for the fee
+			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
+			$query = $wpdb->prepare(
+				"SELECT price FROM $table_name WHERE name = %s OR name_en = %s LIMIT 1",
+				$destination_city,
+				$destination_city
+			);
+			$custom_delivery_fee = $wpdb->get_var($query);
+
+			// If a custom fee is found, override the rates
+			if ($custom_delivery_fee !== null) {
+				foreach ($rates as $rate_id => $rate) {
+					$rates[$rate_id]->cost = (float) $custom_delivery_fee;
+				}
+			}
+
+			return $rates;
+		}
 	}
 
 	function my_plugin_main_page()
@@ -324,7 +492,7 @@ class Transportation_Company_Admin
 		 * class.
 		 */
 
-		// wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/transport-company-admin.css', array(), $this->version, 'all');
+		wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/transport-company-admin.css', array(), $this->version, 'all');
 	}
 
 	/**

@@ -12,7 +12,11 @@ jQuery(document).ready(function ($) {
         },
         success: function (data) {
           const availableCities = data.map((city) => {
-            return { label: city.name_en, value: city.id };
+            const arabic = /[\u0600-\u06FF]/;
+            return {
+              label: arabic.test(request.term) ? city.name : city.name_en,
+              value: city.id,
+            };
           });
 
           response(availableCities);
@@ -48,9 +52,11 @@ jQuery(document).ready(function ($) {
       },
       success: function (response) {
         if (response.success) {
-          console.log("Order details:", response.data.total);
+          console.log("Order details:", response.data);
 
           orderDetails = response.data;
+          $("#id").val(orderDetails.id);
+
           $("#reciever").val(
             `${orderDetails.shipping_first_name} ${orderDetails.shipping_last_name}`
           );
@@ -96,6 +102,7 @@ jQuery(document).ready(function ($) {
     const formData = new FormData(this);
 
     const body = {
+      id: formData.get("id"),
       reciever: formData.get("reciever"),
       address: `${orderDetails.billing_address_1} ${orderDetails.billing_address_2}`,
       payment_methode: payment_method,
@@ -122,32 +129,32 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         $("#modal-loading").hide();
         console.log("Form submitted successfully:", response);
-        const successMessage = $(
-          `<div class="notice notice-success is-dismissible">
+        if (response.success) {
+          const successMessage = $(
+            `<div class="notice notice-success is-dismissible">
+            <p>${response.data.message}</p>
+          </div>`
+          );
+          $("#custom-modal").prepend(successMessage);
+          setTimeout(() => {
+            successMessage.fadeOut(() => successMessage.remove());
+            $("#custom-modal").fadeOut();
+          }, 3000);
+        } else {
+          const errorMessage = $(
+            `<div class="notice notice-error is-dismissible">
           <p>${response.data.message}</p>
         </div>`
-        );
-        $("#custom-modal").prepend(successMessage);
-        setTimeout(() => {
-          successMessage.fadeOut(() => successMessage.remove());
-          $("#custom-modal").fadeOut();
-        }, 3000);
-      },
-      error: function (xhr, status, error) {
-        $("#modal-loading").hide();
-        console.error("Error submitting form:", error);
-        const errorMessage = $(
-          `<div class="notice notice-error is-dismissible">
-          <p>Error submitting form. Please try again.</p>
-        </div>`
-        );
-        $("#custom-modal").prepend(errorMessage);
+          );
+          $("#custom-modal").prepend(errorMessage);
 
-        setTimeout(() => {
-          errorMessage.fadeOut(() => errorMessage.remove());
-          $("#custom-modal").fadeOut();
-        }, 3000);
+          setTimeout(() => {
+            errorMessage.fadeOut(() => errorMessage.remove());
+            $("#custom-modal").fadeOut();
+          }, 3000);
+        }
       },
+      error: function (xhr, status, error) {},
     });
   });
 });
