@@ -102,9 +102,15 @@ class Vanex_Transport_Company implements Transport_Company
             return;
         }
 
-        if (isset($decoded_body['status']) && $decoded_body['status'] === 'success') {
+        if (isset($decoded_body['status_code']) && $decoded_body['status_code'] === 201) {
+            $order_id = get_option('current_order');
+            $order = wc_get_order($order_id);
+            $order->update_meta_data('package-code', $decoded_body['package_code']);
+            $order->save();
+
             wp_send_json_success([
-                'message' => 'Delivery request processed successfully.',
+                'message' =>
+                $decoded_body['message'],
             ]);
         } else {
             $error_message = $decoded_body['message'] ?? 'Unknown error occurred while processing the delivery request.';
@@ -167,27 +173,6 @@ class Miaar_Transport_Company implements Transport_Company
 
     public function authenticate(): string
     {
-        // $data = ['email' => $_ENV['MIAAR_EMAIL'], 'password' => $_ENV['MIAAR_PASSWORD']];
-
-        // $ch = curl_init();
-        // curl_setopt($ch, CURLOPT_URL, $this->url);
-        // curl_setopt($ch, CURLOPT_POST, 1);
-        // curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        // $response = curl_exec($ch);
-
-        // if ($response === false) {
-        //     throw new Exception('Error during authentication: ' . curl_error($ch));
-        // }
-
-        // curl_close($ch);
-        // $decoded_response = json_decode($response, true);
-
-        // if (!isset($decoded_response['data']['access_token'])) {
-        //     throw new Exception('Authentication failed. Invalid response format.');
-        // }
-
-        // return $decoded_response['data']['access_token'];
         return '';
     }
 

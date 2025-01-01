@@ -54,7 +54,7 @@ class Transportation_Company_Admin
 
 		// handle add action columns to woocommerce orders table
 		add_action('admin_enqueue_scripts', function () {
-			wp_enqueue_script('my-plugin-script', plugin_dir_url(__FILE__) . 'js/woocommerce-action-button.js', array('jquery'), '1.0', true);
+			wp_enqueue_script('woocommerce-action-button', plugin_dir_url(__FILE__) . 'js/woocommerce-action-button.js', array('jquery'), '1.0', true);
 		});
 
 		// Add item to menu
