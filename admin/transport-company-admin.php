@@ -54,7 +54,7 @@ class Transportation_Company_Admin
 
 		// handle add action columns to woocommerce orders table
 		add_action('admin_enqueue_scripts', function () {
-			wp_enqueue_script('woocommerce-action-button', plugin_dir_url(__FILE__) . 'js/woocommerce-action-button.js', array('jquery'), '1.0', true);
+			wp_enqueue_script('my-plugin-script', plugin_dir_url(__FILE__) . 'js/woocommerce-action-button.js', array('jquery'), '1.0', true);
 		});
 
 		// Add item to menu
@@ -125,17 +125,9 @@ class Transportation_Company_Admin
 
 		add_action('admin_footer', function () {
 			$screen = get_current_screen();
-
 			if ($screen->id !== 'woocommerce_page_wc-orders') {
 				return;
 			}
-
-			$order = wc_get_order(14);
-
-			$order->update_meta_data('package-code', '-16870-SBH-4728489');
-
-			$order->save();
-
 ?>
 			<div id="custom-modal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; background:#fff; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
 				<div id="modal-title">
@@ -146,7 +138,6 @@ class Transportation_Company_Admin
 				</div>
 				<form id="custom-modal-form">
 					<div class="form-row">
-						<input type="text" id="id" name="id" required style="display: none;" />
 						<div>
 							<label for="description"><?php esc_html_e('description:', 'your-textdomain'); ?></label><br>
 							<input type="text" id="description" name="description" required />
@@ -304,141 +295,6 @@ class Transportation_Company_Admin
 
 			wp_die();
 		});
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/package-accepted', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_package_accepted_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_package_accepted_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/package-delivered', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_package_delivered_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_package_delivered_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/package-storage-returned', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_package_storage_returned_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_package_storage_returned_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/bundle-returned', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_bundle_returned_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_bundle_returned_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/settlement', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_settlement_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_settlement_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
 
 		add_filter('woocommerce_package_rates', 'override_woocommerce_shipping_rates', 10, 2);
 
