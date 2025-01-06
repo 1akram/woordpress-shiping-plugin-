@@ -301,10 +301,8 @@ class Transportation_Company_Admin
 		function override_woocommerce_shipping_rates($rates, $package)
 		{
 			global $wpdb;
-
 			// Fetch the destination city from the shipping address
 			$destination_city = $package['destination']['city'];
-
 			// Query the wp_cities table for the fee
 			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
 			$query = $wpdb->prepare(
@@ -322,6 +320,307 @@ class Transportation_Company_Admin
 			}
 
 			return $rates;
+		}
+
+		add_filter('woocommerce_checkout_fields', 'customize_checkout_fields');
+
+		function customize_checkout_fields($fields)
+		{
+			global $wpdb;
+			// Query the wp_cities table for the fee
+			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
+			$available_cities = $wpdb->get_results($wpdb->prepare(
+				"SELECT name FROM $table_name;",
+			));
+			$city_options = array_merge(
+				['' => __('Select a city...', 'text-domain')], // Default option
+				array_reduce($available_cities, function ($result, $city) {
+					$result[esc_html($city->name)] = __(esc_html($city->name), 'text-domain');
+					return $result;
+				}, [])
+			);
+
+			// unset($fields['billing']['billing_first_name']);
+			// unset($fields['billing']['billing_last_name']);
+			// unset($fields['billing']['billing_country']);
+			// unset($fields['billing']['billing_state']);
+			// unset($fields['billing']['billing_address_1']);
+			// unset($fields['billing']['billing_phone']);
+			// unset($fields['billing']['billing_email']);
+
+			// unset($fields['shipping']['shipping_state']);
+
+			$fields['shipping']['shipping_city']['label'] = __('Select Your City', 'text-domain');
+			$fields['shipping']['shipping_city']['placeholder'] = __('Choose your city', 'text-domain');
+			$fields['shipping']['shipping_city']['type'] = 'select'; // Change to a dropdown
+			$fields['shipping']['shipping_city']['options'] = $city_options;
+			$fields['shipping']['shipping_city']['required'] = true; // Make it required
+			$fields['shipping']['shipping_city']['priority'] = 60;   // Change the display order
+
+			// $user_id = get_current_user_id();
+			// if (!$user_id) {
+			// 	echo 'User is not logged in.';
+			// }
+
+			// $billing_city = get_user_meta($user_id, 'billing_city', true);
+			// if ($billing_city) {
+			// 	echo 'Billing City: ' . esc_html($billing_city);
+			// } else {
+			// 	echo 'Billing city is not set.';
+			// }
+
+			return $fields;
+		}
+
+		// add_action('wp_enqueue_scripts', 'enqueue_custom_checkout_script');
+
+		// function enqueue_custom_checkout_script()
+		// {
+		// 	if (is_checkout()) {
+		// 		wp_enqueue_script(
+		// 			'custom-checkout-script',
+		// 			plugin_dir_url(__FILE__) . 'js/custom-checkout.js',
+		// 			array('jquery'),
+		// 			'1.0',
+		// 			true
+		// 		);
+
+		// 		wp_localize_script('custom-checkout-script', 'ajax_object', array(
+		// 			'ajax_url' => admin_url('admin-ajax.php'),
+		// 		));
+		// 	}
+		// }
+
+		// add_action('wp_ajax_recalculate_delivery_fees', 'recalculate_delivery_fees');
+		// add_action('wp_ajax_nopriv_recalculate_delivery_fees', 'recalculate_delivery_fees');
+
+		// function recalculate_delivery_fees()
+		// {
+		// 	if (isset($_POST['selected_value'])) {
+		// 		$selected_value = sanitize_text_field($_POST['selected_value']);
+
+		// 		// Example logic to calculate fees based on the selected value
+		// 		$fee = ($selected_value == 'CityName') ? 10 : 5;
+		// 		var_dump($selected_value);
+		// 		WC()->cart->add_fee('Delivery Fee', $fee, true);
+		// 	}
+
+		// 	wp_die();
+		// }
+
+
+		// add_action('woocommerce_cart_calculate_fees', 'update_delivery_fees_based_on_city');
+
+		// function update_delivery_fees_based_on_city($cart)
+		// {
+		// if (is_admin() && !defined('DOING_AJAX')) {
+		// 	return;
+		// }
+
+		// // Ensure the cart isn't empty
+		// if (WC()->cart->is_empty()) {
+		// 	return;
+		// }
+
+		// // Get the billing or shipping city based on the checkbox value
+		// $use_shipping_city = isset($_POST['use_shipping_city']) ? sanitize_text_field($_POST['use_shipping_city']) : false;
+
+		// // Check the city field to calculate fees
+		// if ($use_shipping_city) {
+		// 	$city = isset($_POST['shipping_city']) ? sanitize_text_field($_POST['shipping_city']) : '';
+		// } else {
+		// 	$city = isset($_POST['billing_state']) ? sanitize_text_field($_POST['billing_state']) : '';
+		// }
+
+		// // Define custom delivery fee logic
+		// $fee = 0;
+
+		// if ($city === 'CityName1') {
+		// 	$fee = 10; // Delivery fee for CityName1
+		// } elseif ($city === 'CityName2') {
+		// 	$fee = 20; // Delivery fee for CityName2
+		// } else {
+		// 	$fee = 5; // Default delivery fee
+		// }
+
+		// // Add or modify the delivery fee
+		// $cart->add_fee(__('Delivery Fee', 'your-text-domain'), $fee);
+		// }
+
+		add_filter('woocommerce_states', 'custom_woocommerce_states');
+
+		function custom_woocommerce_states($states)
+		{
+			global $wpdb;
+
+			// Query the wp_cities table for the fee
+			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
+			$available_cities = $wpdb->get_results($wpdb->prepare(
+				"SELECT name FROM $table_name;",
+			));
+
+			// Define custom states for Libya
+			$states['LY'] = array_reduce($available_cities, function ($result, $city) {
+				$result[esc_html($city->name)] = __(esc_html($city->name), 'text-domain');
+				return $result;
+			}, []);
+
+			return $states;
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/package-accepted', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_package_accepted_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_package_accepted_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/package-delivered', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_package_delivered_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_package_delivered_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/package-storage-returned', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_package_storage_returned_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_package_storage_returned_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/bundle-returned', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_bundle_returned_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function vanex_webhook_bundle_returned_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				// Example: Write to the debug log
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+
+				// Perform your logic here
+				// e.g., store the data in the database, trigger an action, etc.
+
+				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		}
+
+		add_action('rest_api_init', function () {
+			register_rest_route('vanex', '/webhook/settlement', array(
+				'methods' => 'POST',
+				'callback' => 'vanex_webhook_settlement_handler',
+				'permission_callback' => '__return_true',
+			));
+		});
+
+		function get_order_by_metadata($meta_key, $meta_value)
+		{
+			global $wpdb;
+			$table_name = $wpdb->prefix . 'wc_orders_meta';
+			$result = $wpdb->get_var($wpdb->prepare("SELECT order_id FROM $table_name WHERE meta_key =%s AND meta_value= %s", $meta_key, $meta_value));
+			$order = wc_get_order($result);
+
+			return $order;
+		}
+
+		function vanex_webhook_settlement_handler(WP_REST_Request $request)
+		{
+			// Get the JSON payload sent by Vanex
+			$payload = $request->get_json_params();
+
+			// Log or process the payload
+			if (!empty($payload)) {
+				error_log('Vanex Webhook Received: ' . json_encode($payload));
+				foreach ($request['packages'] as $package) {
+					$order = get_order_by_metadata('package-code', $package['code']);
+					if ($order) {
+						$order->update_status('completed', 'Order marked as paid.');
+						$order->add_order_note('The order has been marked as paid.');
+						$order->save();
+					} else {
+						error_log("Order not found.");
+					}
+				}
+
+				return wp_send_json_success([
+					'status' => 'success',
+					'message' => 'Webhook processed.',
+					'order_id' => $order->get_id(),
+				]);
+			}
+
+			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
 		}
 	}
 
