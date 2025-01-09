@@ -166,6 +166,7 @@ class Transportation_Company_Admin
 <?php
 		});
 
+		// custom shipping button scripts
 		add_action('admin_enqueue_scripts', function () {
 			wp_enqueue_script('jquery-ui-autocomplete');
 			wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
@@ -177,7 +178,7 @@ class Transportation_Company_Admin
 			));
 		});
 
-		// Add AJAX action for logged-in users (if needed, you can also create one for guests)
+		// Add AJAX action for 
 		add_action('wp_ajax_ship_order', function () {
 			// Verify the nonce for security
 			if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'ship_order_nonce')) {
@@ -200,12 +201,11 @@ class Transportation_Company_Admin
 				$order_data = array(
 					'id'            => $order->get_id(),
 					'status'        => $order->get_status(),
-					'total'         => $order->get_total(),
+					'total'         => $order->get_total() - $order->get_shipping_total(),
 					'date_created'  => $order->get_date_created()->format('Y-m-d H:i:s'),
 					'customer_name' => $order->get_billing_first_name() . ' ' . $order->get_billing_last_name(),
 					'date_created' => $order->get_date_created(),
 					'date_modified' => $order->get_date_modified(),
-					'total' => $order->get_total(),
 					'currency' => $order->get_currency(),
 					'payment_method' => $order->get_payment_method(),
 					'payment_method_title' => $order->get_payment_method_title(),
@@ -227,7 +227,7 @@ class Transportation_Company_Admin
 					'shipping_city' => $order->get_shipping_city(),       // Shipping city
 					'shipping_state' => $order->get_shipping_state(),      // Shipping state
 					'shipping_postcode' => $order->get_shipping_postcode(),   // Shipping postcode
-					'products' => $order->get_items()
+					'products' => $order->get_items(),
 				);
 				// Return the order data as a JSON response
 				wp_send_json_success($order_data);
@@ -269,7 +269,7 @@ class Transportation_Company_Admin
 				$city_name,
 				$city_name
 			);
-			
+
 			$city_id_result = $wpdb->get_var($city_id_query);
 
 			if (!$city_id_result) {
@@ -325,7 +325,7 @@ class Transportation_Company_Admin
 					$rates[$rate_id]->cost = (float) $custom_delivery_fee;
 				}
 			}
-		 
+
 			return $rates;
 		}
 		add_filter('woocommerce_states', 'custom_woocommerce_states', 999);
@@ -348,7 +348,7 @@ class Transportation_Company_Admin
 
 			return $states;
 		}
-		 
+
 
 		add_action('rest_api_init', function () {
 			register_rest_route('vanex', '/webhook/package-accepted', array(
@@ -461,7 +461,7 @@ class Transportation_Company_Admin
 		add_action('rest_api_init', function () {
 			register_rest_route('vanex', '/webhook/settlement', array(
 				'methods' => 'POST',
-				'callback' => 'vanex_webhook_settlement_handler',
+				'callback' => 'vanex_webhooks_handler',
 				'permission_callback' => '__return_true',
 			));
 		});
@@ -476,28 +476,64 @@ class Transportation_Company_Admin
 			return $order;
 		}
 
-		function vanex_webhook_settlement_handler(WP_REST_Request $request)
+		function vanex_webhooks_handler(WP_REST_Request $request)
 		{
 			// Get the JSON payload sent by Vanex
 			$payload = $request->get_json_params();
 
-			// Log or process the payload
 			if (!empty($payload)) {
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-				foreach ($request['packages'] as $package) {
-					$order = get_order_by_metadata('package-code', $package['code']);
-					if ($order) {
-						$order->update_status('completed', 'Order marked as paid.');
-						$order->add_order_note('The order has been marked as paid.');
-						$order->save();
-					} else {
-						error_log("Order not found.");
-					}
+				$message = "";
+				switch ($payload['type']) {
+					case '“settlement”':
+						$message = "handled settelment hook";
+						foreach ($request['packages'] as $package) {
+							$order = get_order_by_metadata('package-code', $package['code']);
+							if ($order) {
+								$order->update_status('completed', 'Order marked as paid.');
+								$order->add_order_note('The order has been marked as paid.');
+								$order->save();
+							} else {
+								error_log("Order not found.");
+							}
+						}
+						break;
+
+					case 'package_accepted':
+						$message = "handled package accepted hook";
+						foreach ($request['packages'] as $package) {
+							$order = get_order_by_metadata('package-code', $package['code']);
+							if ($order) {
+								$order->update_status('on-hold', 'Order marked as on hold.');
+								$order->save();
+							} else {
+								error_log("Order with code " . $package['code'] . " not found.");
+							}
+						}
+						break;
+
+					case 'package_delivered':
+						$message = "handled package delivered hook";
+						foreach ($request['packages'] as $package) {
+							$order = get_order_by_metadata('package-code', $package['code']);
+							if ($order) {
+								$order->update_status('completed', 'Order marked as delivered.');
+								$order->add_order_note('The order has been marked as delivered.');
+								$order->save();
+							} else {
+								error_log("Order with code " . $package['code'] . " not found.");
+							}
+						}
+						break;
+
+					default:
+
+						break;
 				}
+
 
 				return wp_send_json_success([
 					'status' => 'success',
-					'message' => 'Webhook processed.',
+					'message' => 'Webhook processed with type of ' . $message,
 					'order_id' => $order->get_id(),
 				]);
 			}

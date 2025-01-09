@@ -173,6 +173,7 @@ class Miaar_Transport_Company implements Transport_Company
 
     public function authenticate(): string
     {
+
         return '';
     }
 
@@ -224,7 +225,6 @@ class Context
 
         $wpdb->query("DELETE FROM $table_name");
 
-        $wpdb->query("UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '$table_name'");
         foreach ($data as $city)
             $this->transport_company->insertCity($city);
     }
