@@ -113,7 +113,7 @@ class Transportation_Company_Admin
 			function ($actions, $order) {
 				$actions['custom_action'] = array(
 					'url'    => admin_url('admin-ajax.php?action=ship_order&order_id=' . $order->get_id()),
-					'name'      => __('ship', 'text-domain'),
+					'name'      => __('ship', 'transportation-company-textdomain'),
 					'action'    => 'ship-action',
 
 				);
@@ -131,7 +131,7 @@ class Transportation_Company_Admin
 ?>
 			<div id="custom-modal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10000; background:#fff; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
 				<div id="modal-title">
-					<h2><?php esc_html_e('Ship order', 'your-textdomain'); ?></h2>
+					<h2><?php esc_html_e('Ship order', 'transportation-company-textdomain'); ?></h2>
 				</div>
 				<div id="modal-loading" style="display:none;">
 					<p>Loading...</p>
@@ -139,28 +139,28 @@ class Transportation_Company_Admin
 				<form id="custom-modal-form">
 					<div class="form-row">
 						<div>
-							<label for="description"><?php esc_html_e('description:', 'your-textdomain'); ?></label><br>
+							<label for="description"><?php esc_html_e('description:', 'transportation-company-textdomain'); ?></label><br>
 							<input type="text" id="description" name="description" required />
 						</div>
 						<div class="ui-widget" style="position:relative;z-index: 999999;">
-							<label for="city"><?php esc_html_e('city:', 'your-textdomain'); ?></label><br>
+							<label for="city"><?php esc_html_e('city:', 'transportation-company-textdomain'); ?></label><br>
 							<input type="text" id="city" name="city" required />
 						</div>
 					</div>
 					<div class="form-row">
 						<div>
-							<label for="reciever"><?php esc_html_e('reciever:', 'your-textdomain'); ?></label><br>
+							<label for="reciever"><?php esc_html_e('reciever:', 'transportation-company-textdomain'); ?></label><br>
 							<input type="text" id="reciever" name="reciever" required />
 						</div>
 						<div>
-							<label for="phone"><?php esc_html_e('phone:', 'your-textdomain'); ?></label><br>
+							<label for="phone"><?php esc_html_e('phone:', 'transportation-company-textdomain'); ?></label><br>
 							<input type="text" id="phone" name="phone" required />
 						</div>
 					</div>
 					<input type="hidden" id="order-id" name="order_id" />
 					<br><br>
-					<button type="submit" class="button button-primary"><?php esc_html_e('Submit', 'your-textdomain'); ?></button>
-					<button type="button" class="button button-secondary" id="custom-modal-close"><?php esc_html_e('Close', 'your-textdomain'); ?></button>
+					<button type="submit" class="button button-primary"><?php esc_html_e('Submit', 'transportation-company-textdomain'); ?></button>
+					<button type="button" class="button button-secondary" id="custom-modal-close"><?php esc_html_e('Close', 'transportation-company-textdomain'); ?></button>
 				</form>
 			</div>
 <?php
@@ -244,14 +244,14 @@ class Transportation_Company_Admin
 			global $wpdb;
 			$name = sanitize_text_field($_GET['name']);
 			$table_name = $wpdb->prefix . 'cities';
-			$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name WHERE name_en LIKE %s OR name LIKE %s", '%' . $wpdb->esc_like($name) . '%', '%' . $wpdb->esc_like($name) . '%'), OBJECT);
+			$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name WHERE name_en LIKE %s OR code LIKE %s OR name LIKE %s", '%' . $wpdb->esc_like($name) . '%', '%' . $wpdb->esc_like($name) . '%', '%' . $wpdb->esc_like($name) . '%'), OBJECT);
 
 			wp_send_json($results);
 		});
 
 		add_action('wp_ajax_request_delivery', function () {
 			global $wpdb;
-			require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
+			require_once TRANSPORT_COMPANY_DIR . 'includes/transport-company-service.php';
 
 			if (!isset($_POST['order_data']) || !isset($_POST['order_data']['city_name'])) {
 				wp_send_json_error(['message' => 'Invalid data received.']);
@@ -264,8 +264,12 @@ class Transportation_Company_Admin
 			$table_name = $wpdb->prefix . 'cities';
 
 			$city_id_query = $wpdb->prepare(
-				"SELECT id FROM $table_name WHERE name_en='$city_name' OR name='$city_name'"
+				"SELECT id FROM $table_name WHERE name_en = %s OR name = %s OR code = %s Limit 1",
+				$city_name,
+				$city_name,
+				$city_name
 			);
+			
 			$city_id_result = $wpdb->get_var($city_id_query);
 
 			if (!$city_id_result) {
@@ -295,18 +299,21 @@ class Transportation_Company_Admin
 
 			wp_die();
 		});
-
+		add_filter('transient_shipping-transient-version', function ($value, $name) {
+			return false;
+		}, 10, 2);
 		add_filter('woocommerce_package_rates', 'override_woocommerce_shipping_rates', 10, 2);
 
 		function override_woocommerce_shipping_rates($rates, $package)
 		{
+
 			global $wpdb;
 			// Fetch the destination city from the shipping address
-			$destination_city = $package['destination']['city'];
+			$destination_city = $package['destination']['state'];
 			// Query the wp_cities table for the fee
 			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
 			$query = $wpdb->prepare(
-				"SELECT price FROM $table_name WHERE name = %s OR name_en = %s LIMIT 1",
+				"SELECT price,name,code FROM $table_name WHERE code = %s  LIMIT 1",
 				$destination_city,
 				$destination_city
 			);
@@ -318,136 +325,10 @@ class Transportation_Company_Admin
 					$rates[$rate_id]->cost = (float) $custom_delivery_fee;
 				}
 			}
-
+		 
 			return $rates;
 		}
-
-		add_filter('woocommerce_checkout_fields', 'customize_checkout_fields');
-
-		function customize_checkout_fields($fields)
-		{
-			global $wpdb;
-			// Query the wp_cities table for the fee
-			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
-			$available_cities = $wpdb->get_results($wpdb->prepare(
-				"SELECT name FROM $table_name;",
-			));
-			$city_options = array_merge(
-				['' => __('Select a city...', 'text-domain')], // Default option
-				array_reduce($available_cities, function ($result, $city) {
-					$result[esc_html($city->name)] = __(esc_html($city->name), 'text-domain');
-					return $result;
-				}, [])
-			);
-
-			// unset($fields['billing']['billing_first_name']);
-			// unset($fields['billing']['billing_last_name']);
-			// unset($fields['billing']['billing_country']);
-			// unset($fields['billing']['billing_state']);
-			// unset($fields['billing']['billing_address_1']);
-			// unset($fields['billing']['billing_phone']);
-			// unset($fields['billing']['billing_email']);
-
-			// unset($fields['shipping']['shipping_state']);
-
-			$fields['shipping']['shipping_city']['label'] = __('Select Your City', 'text-domain');
-			$fields['shipping']['shipping_city']['placeholder'] = __('Choose your city', 'text-domain');
-			$fields['shipping']['shipping_city']['type'] = 'select'; // Change to a dropdown
-			$fields['shipping']['shipping_city']['options'] = $city_options;
-			$fields['shipping']['shipping_city']['required'] = true; // Make it required
-			$fields['shipping']['shipping_city']['priority'] = 60;   // Change the display order
-
-			// $user_id = get_current_user_id();
-			// if (!$user_id) {
-			// 	echo 'User is not logged in.';
-			// }
-
-			// $billing_city = get_user_meta($user_id, 'billing_city', true);
-			// if ($billing_city) {
-			// 	echo 'Billing City: ' . esc_html($billing_city);
-			// } else {
-			// 	echo 'Billing city is not set.';
-			// }
-
-			return $fields;
-		}
-
-		// add_action('wp_enqueue_scripts', 'enqueue_custom_checkout_script');
-
-		// function enqueue_custom_checkout_script()
-		// {
-		// 	if (is_checkout()) {
-		// 		wp_enqueue_script(
-		// 			'custom-checkout-script',
-		// 			plugin_dir_url(__FILE__) . 'js/custom-checkout.js',
-		// 			array('jquery'),
-		// 			'1.0',
-		// 			true
-		// 		);
-
-		// 		wp_localize_script('custom-checkout-script', 'ajax_object', array(
-		// 			'ajax_url' => admin_url('admin-ajax.php'),
-		// 		));
-		// 	}
-		// }
-
-		// add_action('wp_ajax_recalculate_delivery_fees', 'recalculate_delivery_fees');
-		// add_action('wp_ajax_nopriv_recalculate_delivery_fees', 'recalculate_delivery_fees');
-
-		// function recalculate_delivery_fees()
-		// {
-		// 	if (isset($_POST['selected_value'])) {
-		// 		$selected_value = sanitize_text_field($_POST['selected_value']);
-
-		// 		// Example logic to calculate fees based on the selected value
-		// 		$fee = ($selected_value == 'CityName') ? 10 : 5;
-		// 		var_dump($selected_value);
-		// 		WC()->cart->add_fee('Delivery Fee', $fee, true);
-		// 	}
-
-		// 	wp_die();
-		// }
-
-
-		// add_action('woocommerce_cart_calculate_fees', 'update_delivery_fees_based_on_city');
-
-		// function update_delivery_fees_based_on_city($cart)
-		// {
-		// if (is_admin() && !defined('DOING_AJAX')) {
-		// 	return;
-		// }
-
-		// // Ensure the cart isn't empty
-		// if (WC()->cart->is_empty()) {
-		// 	return;
-		// }
-
-		// // Get the billing or shipping city based on the checkbox value
-		// $use_shipping_city = isset($_POST['use_shipping_city']) ? sanitize_text_field($_POST['use_shipping_city']) : false;
-
-		// // Check the city field to calculate fees
-		// if ($use_shipping_city) {
-		// 	$city = isset($_POST['shipping_city']) ? sanitize_text_field($_POST['shipping_city']) : '';
-		// } else {
-		// 	$city = isset($_POST['billing_state']) ? sanitize_text_field($_POST['billing_state']) : '';
-		// }
-
-		// // Define custom delivery fee logic
-		// $fee = 0;
-
-		// if ($city === 'CityName1') {
-		// 	$fee = 10; // Delivery fee for CityName1
-		// } elseif ($city === 'CityName2') {
-		// 	$fee = 20; // Delivery fee for CityName2
-		// } else {
-		// 	$fee = 5; // Default delivery fee
-		// }
-
-		// // Add or modify the delivery fee
-		// $cart->add_fee(__('Delivery Fee', 'your-text-domain'), $fee);
-		// }
-
-		add_filter('woocommerce_states', 'custom_woocommerce_states');
+		add_filter('woocommerce_states', 'custom_woocommerce_states', 999);
 
 		function custom_woocommerce_states($states)
 		{
@@ -456,17 +337,18 @@ class Transportation_Company_Admin
 			// Query the wp_cities table for the fee
 			$table_name = $wpdb->prefix . 'cities'; // Use wp_cities table
 			$available_cities = $wpdb->get_results($wpdb->prepare(
-				"SELECT name FROM $table_name;",
+				"SELECT name,code FROM $table_name;",
 			));
 
 			// Define custom states for Libya
 			$states['LY'] = array_reduce($available_cities, function ($result, $city) {
-				$result[esc_html($city->name)] = __(esc_html($city->name), 'text-domain');
+				$result[esc_html($city->code)] = __(esc_html($city->name), 'transportation-company-textdomain');
 				return $result;
 			}, []);
 
 			return $states;
 		}
+		 
 
 		add_action('rest_api_init', function () {
 			register_rest_route('vanex', '/webhook/package-accepted', array(
@@ -626,7 +508,7 @@ class Transportation_Company_Admin
 
 	function my_plugin_main_page()
 	{
-		include_once(MY_PLUGIN_DIR . 'admin/partials/transport-company-admin-display.php');
+		include_once(TRANSPORT_COMPANY_DIR . 'admin/partials/transport-company-admin-display.php');
 	}
 	/**
 	 * Register the stylesheets for the admin area.

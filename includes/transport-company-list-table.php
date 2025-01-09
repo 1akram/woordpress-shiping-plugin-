@@ -26,7 +26,7 @@ class Transport_Company_List_Table extends WP_List_Table
 
     function prepare_items()
     {
-        require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
+        require_once TRANSPORT_COMPANY_DIR . 'includes/transport-company-service.php';
 
         $active_company = get_option('active_company', 'شركة Vanex');
         $cities = [];

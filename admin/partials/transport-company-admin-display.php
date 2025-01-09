@@ -12,8 +12,8 @@
  * @subpackage Transport_Company/admin/partials
  */
 
-require_once MY_PLUGIN_DIR . 'includes/transport-company-list-table.php';
-require_once MY_PLUGIN_DIR . 'includes/transport-company-service.php';
+require_once TRANSPORT_COMPANY_DIR . 'includes/transport-company-list-table.php';
+require_once TRANSPORT_COMPANY_DIR . 'includes/transport-company-service.php';
 
 // Save the selected company when the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {

@@ -64,7 +64,7 @@ jQuery(document).ready(function ($) {
           $("#address").val(
             `${orderDetails.shipping_address_1} ${orderDetails.shipping_address_2}`
           );
-          $("#city").val(orderDetails.billing_city);
+          $("#city").val(orderDetails.shipping_state);
           $("#modal-loading").hide();
           $("#custom-modal-form").fadeIn();
         } else {

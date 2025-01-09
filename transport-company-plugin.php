@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       Transportation company
  * Description:       Plugin responsible for handling transportation companies
- * Version:           1.0.0
+ * Version:           1.0.1
  * Text Domain: transportation-company-textdomain
  */
 
@@ -32,7 +32,7 @@ use Dotenv\Dotenv;
  * Rename this for your plugin and update it as you release new versions.
  */
 define('PLUGIN_NAME_VERSION', '1.0.0');
-define('MY_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('TRANSPORT_COMPANY_DIR', plugin_dir_path(__FILE__));
 
 /**
  * The code that runs during plugin activation.
