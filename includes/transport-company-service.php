@@ -174,7 +174,49 @@ class Miaar_Transport_Company implements Transport_Company
     public function authenticate(): string
     {
 
-        return '';
+        $mutation = <<<GQL
+            mutation (\$input: LoginInput!) {
+                login(input: \$input) {
+                    token
+                    ttl
+                }
+            }
+            GQL;
+        $data = [
+            'query' => $mutation,
+            'variables' => [
+                'input' => array(
+                    "username" => $_ENV['MIAAR_EMAIL'],
+                    "password" => $_ENV['MIAAR_PASSWORD'],
+                    "rememberMe" => true,
+                    "fcmToken" => "fcmToken" // Changed later
+                )
+            ],
+        ];
+
+        $ch = curl_init($this->url);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        echo json_encode($data);
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            wp_send_json_error([
+                'message' => curl_error($ch),
+            ]);
+            curl_close($ch);
+            exit;
+        }
+
+        $decoded_response = json_decode($response, true);
+        update_option('active_company_token', $decoded_response['token']);
+
+        return $decoded_response;
     }
 
     public function insertCity(array $city): void {}
