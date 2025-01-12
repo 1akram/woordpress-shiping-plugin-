@@ -160,7 +160,6 @@ class Vanex_Transport_Company implements Transport_Company
     }
 }
 
-
 class Miaar_Transport_Company implements Transport_Company
 {
     private string $url;
@@ -239,6 +238,163 @@ class Miaar_Transport_Company implements Transport_Company
     }
 }
 
+class Camex_Transport_Company implements Transport_Company
+{
+    private string $url;
+
+    public function __construct()
+    {
+        $this->url =
+            $_ENV['CAMEX_API'];
+    }
+
+    public function authenticate(): string
+    {
+        $params = ['providerKey' => $_ENV['CAMEX_PROVIDER_KEY'], 'clientKey' => $_ENV['CAMEX_CLIENT_KEY']];
+        $queryString = http_build_query($params);
+
+        $url = $this->url . '/ApiEndpoints/Login?' . $queryString;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPGET, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            throw new Exception('Error during authentication: ' . curl_error($ch));
+        }
+
+        curl_close($ch);
+        $decoded_response = json_decode($response, true);
+        if ($decoded_response['type'] == (2 || 3)) {
+            throw new Exception('Authentication failed. error :' . $decoded_response['messages'][0]);
+        }
+        $access_token = $decoded_response['data']['content']['value'];
+        update_option('active_company_token', $access_token);
+        return $access_token;
+    }
+
+    public function insertCity(array $city): void
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+        $wpdb->insert(
+            $table_name,
+            array(
+                "id" => $city['cityId'],
+                "name" => $city['cityName'],
+                "branch" => $city['areaName'],
+                "price" => $city['totalCost'],
+            )
+        );
+    }
+
+    public function requestDelivery(array $data): void
+    {
+        $token = get_option('active_company_token');
+
+        if (!$token) {
+            throw new Exception('Authentication token is missing. Please log in again.');
+        }
+
+        $headers = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ];
+        // $data =[
+        //  "cityId"=> $body['id'] 0, 
+        //  "customWeight"=> 0,
+        //  "noItems"=> count($body['products']) 0,
+        //  "price"=> $body['total'] ,
+        //  "productDescrp"=> "", 
+        //  "storeName"=> "", 
+        //  "receiverPhone"=> $body['billing_phone'],
+        //  "customWeightMeta"=> "",
+        //  "address"=> $body['billing_address_1']." ".$body['billing_address_2'],
+        //  "notes"=> "", 
+        // ]
+
+        $response = wp_remote_post($this->url . '/ApiEndpoints', [
+            'method'  => 'POST',
+            'body'    => json_encode($data),
+            'headers' => $headers,
+        ]);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error([
+                'message' => $response->get_error_message(),
+            ]);
+            return;
+        }
+
+        // Retrieve and decode the response body.
+        $body = wp_remote_retrieve_body($response);
+        $decoded_body = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error([
+                'message' => 'Invalid response format received from the server.',
+            ]);
+            return;
+        }
+
+        if (isset($decoded_body['status_code']) && $decoded_body['status_code'] === 201) {
+            $order_id = get_option('current_order');
+            $order = wc_get_order($order_id);
+            $order->update_meta_data('package-code', $decoded_body['package_code']);
+            $order->save();
+
+            wp_send_json_success([
+                'message' =>
+                $decoded_body['message'],
+            ]);
+        } else {
+            $error_message = $decoded_body['message'] ?? 'Unknown error occurred while processing the delivery request.';
+            wp_send_json_error([
+                'message' => $error_message,
+            ]);
+        }
+    }
+
+    function getCitiesFromDB(): array
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+
+        $results = $wpdb->get_results("SELECT * FROM $table_name", OBJECT);
+        return $results;
+    }
+
+    public function getCitiesFromServer(): array
+    {
+        $token = get_option('active_company_token');
+
+        if (!$token) {
+            throw new Exception('Authentication token is missing. Please log in again.');
+        }
+
+        $headers = [
+            'Authorization: Bearer ' . $token,
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->url . '/ApiEndpoints/Cities?culture=ar-LY');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $decoded_response = json_decode($response, true);
+        if ($decoded_response['type'] == (2 || 3)) {
+            throw new Exception('Error fetching cities: ' . curl_error($ch));
+        }
+        return $decoded_response['data']['content'];
+    }
+}
 
 class Context
 {
