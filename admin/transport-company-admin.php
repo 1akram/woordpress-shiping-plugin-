@@ -49,6 +49,8 @@ class Transportation_Company_Admin
 	 */
 	public function __construct($plugin_name, $version)
 	{
+		require_once TRANSPORT_COMPANY_DIR . 'includes/transport-company-service.php';
+
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
@@ -251,7 +253,6 @@ class Transportation_Company_Admin
 
 		add_action('wp_ajax_request_delivery', function () {
 			global $wpdb;
-			require_once TRANSPORT_COMPANY_DIR . 'includes/transport-company-service.php';
 
 			if (!isset($_POST['order_data']) || !isset($_POST['order_data']['city_name'])) {
 				wp_send_json_error(['message' => 'Invalid data received.']);
@@ -299,9 +300,11 @@ class Transportation_Company_Admin
 
 			wp_die();
 		});
+
 		add_filter('transient_shipping-transient-version', function ($value, $name) {
 			return false;
 		}, 10, 2);
+
 		add_filter('woocommerce_package_rates', 'override_woocommerce_shipping_rates', 10, 2);
 
 		function override_woocommerce_shipping_rates($rates, $package)
@@ -349,197 +352,132 @@ class Transportation_Company_Admin
 			return $states;
 		}
 
+		// add_action('rest_api_init', function () {
+		// 	register_rest_route('camex', '/webhook', array(
+		// 		'methods' => 'POST',
+		// 		'callback' => 'camex_webhooks_handler',
+		// 		'permission_callback' => '__return_true',
+		// 	));
+		// });
 
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/package-accepted', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_package_accepted_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
+		// function camex_webhooks_handler(WP_REST_Request $request)
+		// {
+		// 	// Get the JSON payload sent by Vanex
+		// 	$payload = $request->get_json_params();
 
-		function vanex_webhook_package_accepted_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
+		// 	// Log or process the payload
+		// 	if (!empty($payload)) {
+		// 		// Example: Write to the debug log
+		// 		error_log('Camex Webhook Received: ' . json_encode($payload));
 
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
+		// 		// Perform your logic here
+		// 		// e.g., store the data in the database, trigger an action, etc.
 
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
+		// 		return rest_ensure_response(['status' => 'success', 'message' => 'Camex Webhook processed.', 'request' => $payload]);
+		// 	}
 
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
+		// 	return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		// }
 
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		// add_action('rest_api_init', function () {
+		// 	register_rest_route('vanex', '/webhook/settlement', array(
+		// 		'methods' => 'POST',
+		// 		'callback' => 'vanex_webhooks_handler',
+		// 		'permission_callback' => '__return_true',
+		// 	));
+		// });
+
+		// function get_order_by_metadata($meta_key, $meta_value)
+		// {
+		// 	global $wpdb;
+		// 	$table_name = $wpdb->prefix . 'wc_orders_meta';
+		// 	$result = $wpdb->get_var($wpdb->prepare("SELECT order_id FROM $table_name WHERE meta_key =%s AND meta_value= %s", $meta_key, $meta_value));
+		// 	$order = wc_get_order($result);
+
+		// 	return $order;
+		// }
+
+		// function vanex_webhooks_handler(WP_REST_Request $request)
+		// {
+		// 	// Get the JSON payload sent by Vanex
+		// 	$payload = $request->get_json_params();
+
+		// 	if (!empty($payload)) {
+		// 		$message = "";
+		// 		switch ($payload['type']) {
+		// 			case '“settlement”':
+		// 				$message = "handled settelment hook";
+		// 				foreach ($request['packages'] as $package) {
+		// 					$order = get_order_by_metadata('package-code', $package['code']);
+		// 					if ($order) {
+		// 						$order->update_status('completed', 'Order marked as paid.');
+		// 						$order->add_order_note('The order has been marked as paid.');
+		// 						$order->save();
+		// 					} else {
+		// 						error_log("Order not found.");
+		// 					}
+		// 				}
+		// 				break;
+
+		// 			case 'package_accepted':
+		// 				$message = "handled package accepted hook";
+		// 				foreach ($request['packages'] as $package) {
+		// 					$order = get_order_by_metadata('package-code', $package['code']);
+		// 					if ($order) {
+		// 						$order->update_status('on-hold', 'Order marked as on hold.');
+		// 						$order->save();
+		// 					} else {
+		// 						error_log("Order with code " . $package['code'] . " not found.");
+		// 					}
+		// 				}
+		// 				break;
+
+		// 			case 'package_delivered':
+		// 				$message = "handled package delivered hook";
+		// 				foreach ($request['packages'] as $package) {
+		// 					$order = get_order_by_metadata('package-code', $package['code']);
+		// 					if ($order) {
+		// 						$order->update_status('completed', 'Order marked as delivered.');
+		// 						$order->add_order_note('The order has been marked as delivered.');
+		// 						$order->save();
+		// 					} else {
+		// 						error_log("Order with code " . $package['code'] . " not found.");
+		// 					}
+		// 				}
+		// 				break;
+
+		// 			default:
+
+		// 				break;
+		// 		}
+
+
+		// 		return wp_send_json_success([
+		// 			'status' => 'success',
+		// 			'message' => 'Webhook processed with type of ' . $message,
+		// 			'order_id' => $order->get_id(),
+		// 		]);
+		// 	}
+
+		// 	return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
+		// }
+		$active_company = get_option('active_company', 'شركة Vanex');
+		$classMap = [
+			"شركة Vanex" => "Vanex_Transport_Company",
+			"شركة المعيار" => "Miaar_Transport_Company",
+			"شركة Camex" => "Camex_Transport_Company",
+		];
+		echo !isset($classMap[$active_company]);
+		echo !class_exists($classMap[$active_company]);
+
+		if (!isset($classMap[$active_company]) || !class_exists($classMap[$active_company])) {
+			wp_send_json_error(['message' => 'Transport company class not found.']);
+			wp_die();
 		}
+		$class_name = $classMap[$active_company];
 
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/package-delivered', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_package_delivered_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_package_delivered_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/package-storage-returned', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_package_storage_returned_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_package_storage_returned_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/bundle-returned', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhook_bundle_returned_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function vanex_webhook_bundle_returned_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			// Log or process the payload
-			if (!empty($payload)) {
-				// Example: Write to the debug log
-				error_log('Vanex Webhook Received: ' . json_encode($payload));
-
-				// Perform your logic here
-				// e.g., store the data in the database, trigger an action, etc.
-
-				return rest_ensure_response(['status' => 'success', 'message' => 'Webhook processed.', 'request' => $payload]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
-
-		add_action('rest_api_init', function () {
-			register_rest_route('vanex', '/webhook/settlement', array(
-				'methods' => 'POST',
-				'callback' => 'vanex_webhooks_handler',
-				'permission_callback' => '__return_true',
-			));
-		});
-
-		function get_order_by_metadata($meta_key, $meta_value)
-		{
-			global $wpdb;
-			$table_name = $wpdb->prefix . 'wc_orders_meta';
-			$result = $wpdb->get_var($wpdb->prepare("SELECT order_id FROM $table_name WHERE meta_key =%s AND meta_value= %s", $meta_key, $meta_value));
-			$order = wc_get_order($result);
-
-			return $order;
-		}
-
-		function vanex_webhooks_handler(WP_REST_Request $request)
-		{
-			// Get the JSON payload sent by Vanex
-			$payload = $request->get_json_params();
-
-			if (!empty($payload)) {
-				$message = "";
-				switch ($payload['type']) {
-					case '“settlement”':
-						$message = "handled settelment hook";
-						foreach ($request['packages'] as $package) {
-							$order = get_order_by_metadata('package-code', $package['code']);
-							if ($order) {
-								$order->update_status('completed', 'Order marked as paid.');
-								$order->add_order_note('The order has been marked as paid.');
-								$order->save();
-							} else {
-								error_log("Order not found.");
-							}
-						}
-						break;
-
-					case 'package_accepted':
-						$message = "handled package accepted hook";
-						foreach ($request['packages'] as $package) {
-							$order = get_order_by_metadata('package-code', $package['code']);
-							if ($order) {
-								$order->update_status('on-hold', 'Order marked as on hold.');
-								$order->save();
-							} else {
-								error_log("Order with code " . $package['code'] . " not found.");
-							}
-						}
-						break;
-
-					case 'package_delivered':
-						$message = "handled package delivered hook";
-						foreach ($request['packages'] as $package) {
-							$order = get_order_by_metadata('package-code', $package['code']);
-							if ($order) {
-								$order->update_status('completed', 'Order marked as delivered.');
-								$order->add_order_note('The order has been marked as delivered.');
-								$order->save();
-							} else {
-								error_log("Order with code " . $package['code'] . " not found.");
-							}
-						}
-						break;
-
-					default:
-
-						break;
-				}
-
-
-				return wp_send_json_success([
-					'status' => 'success',
-					'message' => 'Webhook processed with type of ' . $message,
-					'order_id' => $order->get_id(),
-				]);
-			}
-
-			return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-		}
+		$transport_company = new Context(new $class_name());
+		$transport_company->setUpWebHook();
 	}
 
 	function my_plugin_main_page()
