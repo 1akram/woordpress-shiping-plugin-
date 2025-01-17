@@ -7,8 +7,6 @@ interface Transport_Company
     public function requestDelivery(array $data): void;
     public function getCitiesFromDB(): array;
     public function getCitiesFromServer(): array;
-    public function setUpWebHook();
-    public function handleWebHook(WP_REST_Request $request);
 }
 
 class Vanex_Transport_Company implements Transport_Company
@@ -160,89 +158,6 @@ class Vanex_Transport_Company implements Transport_Company
         $decoded_response = json_decode($response, true);
         return $decoded_response['data'];
     }
-
-    public function setUpWebHook()
-    {
-        register_rest_route('vanex', '/webhook/settlement', array(
-            'methods' => 'POST',
-            'callback' => [$this, 'handleWebHook'],
-            'permission_callback' => '__return_true',
-        ));
-    }
-
-    public function get_order_by_metadata($meta_key, $meta_value)
-    {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'wc_orders_meta';
-        $result = $wpdb->get_var($wpdb->prepare("SELECT order_id FROM $table_name WHERE meta_key =%s AND meta_value= %s", $meta_key, $meta_value));
-        $order = wc_get_order($result);
-
-        return $order;
-    }
-
-    public function handleWebHook(WP_REST_Request $request)
-    {
-        // Get the JSON payload sent by Vanex
-        $payload = $request->get_json_params();
-
-        if (!empty($payload)) {
-            $message = "";
-            switch ($payload['type']) {
-                case '“settlement”':
-                    $message = "handled settelment hook";
-                    foreach ($request['packages'] as $package) {
-                        $order = $this->get_order_by_metadata('package-code', $package['code']);
-                        if ($order) {
-                            $order->update_status('completed', 'Order marked as paid.');
-                            $order->add_order_note('The order has been marked as paid.');
-                            $order->save();
-                        } else {
-                            error_log("Order not found.");
-                        }
-                    }
-                    break;
-
-                case 'package_accepted':
-                    $message = "handled package accepted hook";
-                    foreach ($request['packages'] as $package) {
-                        $order = $this->get_order_by_metadata('package-code', $package['code']);
-                        if ($order) {
-                            $order->update_status('on-hold', 'Order marked as on hold.');
-                            $order->save();
-                        } else {
-                            error_log("Order with code " . $package['code'] . " not found.");
-                        }
-                    }
-                    break;
-
-                case 'package_delivered':
-                    $message = "handled package delivered hook";
-                    foreach ($request['packages'] as $package) {
-                        $order = $this->get_order_by_metadata('package-code', $package['code']);
-                        if ($order) {
-                            $order->update_status('completed', 'Order marked as delivered.');
-                            $order->add_order_note('The order has been marked as delivered.');
-                            $order->save();
-                        } else {
-                            error_log("Order with code " . $package['code'] . " not found.");
-                        }
-                    }
-                    break;
-
-                default:
-
-                    break;
-            }
-
-            return wp_send_json_success([
-                'status' => 'success',
-                'message' => 'Webhook processed with type of ' . $message,
-                'order_id' => $order->get_id(),
-            ]);
-        }
-
-        return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-    }
 }
 
 class Miaar_Transport_Company implements Transport_Company
@@ -321,10 +236,6 @@ class Miaar_Transport_Company implements Transport_Company
     {
         return [];
     }
-
-    public function setUpWebHook() {}
-
-    public function handleWebHook(WP_REST_Request $request) {}
 }
 
 class Camex_Transport_Company implements Transport_Company
@@ -429,10 +340,10 @@ class Camex_Transport_Company implements Transport_Company
             return;
         }
 
-        if (isset($decoded_body['status_code']) && $decoded_body['status_code'] === 201) {
+        if (isset($decoded_body['type']) && $decoded_body['type'] === 1) {
             $order_id = get_option('current_order');
             $order = wc_get_order($order_id);
-            $order->update_meta_data('package-code', $decoded_body['package_code']);
+            $order->update_meta_data('package-code', $decoded_body['TraceId']);
             $order->save();
 
             wp_send_json_success([
@@ -483,38 +394,6 @@ class Camex_Transport_Company implements Transport_Company
         }
         return $decoded_response['data']['content'];
     }
-
-    public function setUpWebHook()
-    {
-        add_action('rest_api_init', function () {
-            register_rest_route('camex', '/webhook', array(
-                'methods' => 'POST',
-                'callback' => [$this, 'handleWebHook'],
-                'permission_callback' => '__return_true',
-            ));
-        });
-
-        // function camex_webhooks_handler(WP_REST_Request $request)
-        // {
-
-        // }
-    }
-
-    public function handleWebHook(WP_REST_Request $request)
-    {
-        $payload = $request->get_json_params();
-
-        if (!empty($payload)) {
-            // Example: Write to the debug log
-            error_log('Camex Webhook Received: ' . json_encode($payload));
-
-            // Perform your logic here
-
-            return rest_ensure_response(['status' => 'success', 'message' => 'Camex Webhook processed.', 'request' => $payload]);
-        }
-
-        return new WP_Error('no_payload', 'Invalid payload.', array('status' => 400));
-    }
 }
 
 class Context
@@ -563,10 +442,5 @@ class Context
     public function requestDelivery(array $data)
     {
         return $this->transport_company->requestDelivery($data);
-    }
-
-    public function setUpWebHook()
-    {
-        return $this->transport_company->setUpWebHook();
     }
 }
