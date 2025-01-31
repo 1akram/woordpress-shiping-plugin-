@@ -252,25 +252,21 @@ class Camex_Transport_Company implements Transport_Company
     {
         $params = ['providerKey' => $_ENV['CAMEX_PROVIDER_KEY'], 'clientKey' => $_ENV['CAMEX_CLIENT_KEY']];
         $queryString = http_build_query($params);
-
         $url = $this->url . '/ApiEndpoints/Login?' . $queryString;
-
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPGET, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $response = curl_exec($ch);
-
         if (curl_errno($ch)) {
             throw new Exception('Error during authentication: ' . curl_error($ch));
         }
-
         curl_close($ch);
         $decoded_response = json_decode($response, true);
-        if ($decoded_response['type'] == (2 || 3)) {
-            throw new Exception('Authentication failed. error :' . $decoded_response['messages'][0]);
+        if ($decoded_response['type'] == 2 || $decoded_response['type'] == 3) {
+            throw new Exception('Authentication failed. error :' . $decoded_response['messages']);
         }
-        $access_token = $decoded_response['data']['content']['value'];
+        $access_token = $decoded_response['content']['value'];
         update_option('active_company_token', $access_token);
         return $access_token;
     }
@@ -333,12 +329,15 @@ class Camex_Transport_Company implements Transport_Company
         $body = wp_remote_retrieve_body($response);
         $decoded_body = json_decode($body, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            wp_send_json_error([
-                'message' => 'Invalid response format received from the server.',
-            ]);
-            return;
-        }
+        // Check if there was an error decoding the JSON response
+        // json_last_error() returns JSON_ERROR_NONE (0) if decoding was successful
+        // If there was an error decoding, send back an error response to the client
+        // if (json_last_error() !== JSON_ERROR_NONE) {
+        //     wp_send_json_error([
+        //         'message' => 'Invalid response format received from the server.',
+        //     ]);
+        //     return;
+        // }
 
         if (isset($decoded_body['type']) && $decoded_body['type'] === 1) {
             $order_id = get_option('current_order');
@@ -351,9 +350,12 @@ class Camex_Transport_Company implements Transport_Company
                 $decoded_body['message'],
             ]);
         } else {
-            $error_message = $decoded_body['message'] ?? 'Unknown error occurred while processing the delivery request.';
+            // $error_message = $decoded_body['message'] ?? 'Unknown error occurred while processing the delivery request.';
+            // wp_send_json_error([
+            //     'message' => $error_message,
+            // ]);
             wp_send_json_error([
-                'message' => $error_message,
+                'message' => $decoded_body['type'],
             ]);
         }
     }
@@ -389,10 +391,10 @@ class Camex_Transport_Company implements Transport_Company
         curl_close($ch);
 
         $decoded_response = json_decode($response, true);
-        if ($decoded_response['type'] == (2 || 3)) {
+        if ($decoded_response['type'] == 2 || $decoded_response['type'] == 3) {
             throw new Exception('Error fetching cities: ' . curl_error($ch));
         }
-        return $decoded_response['data']['content'];
+        return $decoded_response['content'];
     }
 }
 

@@ -33,6 +33,7 @@ class Transport_Company_List_Table extends WP_List_Table
         $classMap = [
             "شركة Vanex" => "Vanex_Transport_Company",
             "شركة المعيار" => "Miaar_Transport_Company",
+            "شركة Camex" => "Camex_Transport_Company",
         ];
 
         if (isset($classMap[$active_company])) {
