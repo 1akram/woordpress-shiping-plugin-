@@ -285,6 +285,7 @@ class Transportation_Company_Admin
 			$classMap = [
 				"شركة Vanex" => "Vanex_Transport_Company",
 				"شركة المعيار" => "Miaar_Transport_Company",
+				"شركة Camex" => "Camex_Transport_Company",
 			];
 
 			if (!isset($classMap[$active_company]) || !class_exists($classMap[$active_company])) {
@@ -375,9 +376,11 @@ class Transportation_Company_Admin
 					case -2: {
 							$message = "Unaccepted from stock management yet";
 						}
+						break;
 					case 0: {
 							$message = "Data Entry done but not accepted in store yet";
 						}
+						break;
 					case 1: {
 							$message = "Prepare shipment started";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -389,6 +392,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 2: {
 							$message = "Ready from stock management";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -400,15 +404,19 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 3: {
 							$message = "Enter store";
 						}
+						break;
 					case 4: {
 							$message = "In convert to another branch";
 						}
+						break;
 					case 5: {
 							$message = "In delivery with delegate";
 						}
+						break;
 					case 6: {
 							$message = "Delivered";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -420,6 +428,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 8: {
 							$message = "In return to main branch";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -431,6 +440,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 9: {
 							$message = "In return with delegate";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -442,6 +452,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 11: {
 							$message = "Returned to client";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -453,6 +464,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 12: {
 							$message = "Money was collected by client";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -464,6 +476,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					case 19: {
 							$message = "Returned to stock management ";
 							$order = get_order_by_metadata('package-code', $payload['Id']);
@@ -475,6 +488,7 @@ class Transportation_Company_Admin
 								error_log("Order with code " . $payload['Id'] . " not found.");
 							}
 						}
+						break;
 					default:
 				}
 				return wp_send_json_success([

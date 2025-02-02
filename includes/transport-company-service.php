@@ -172,7 +172,7 @@ class Miaar_Transport_Company implements Transport_Company
 
     public function authenticate(): string
     {
-
+        return "";
         $mutation = <<<GQL
             mutation (\$input: LoginInput!) {
                 login(input: \$input) {
@@ -250,6 +250,7 @@ class Camex_Transport_Company implements Transport_Company
 
     public function authenticate(): string
     {
+        return "";
         $params = ['providerKey' => $_ENV['CAMEX_PROVIDER_KEY'], 'clientKey' => $_ENV['CAMEX_CLIENT_KEY']];
         $queryString = http_build_query($params);
         $url = $this->url . '/ApiEndpoints/Login?' . $queryString;
@@ -299,22 +300,22 @@ class Camex_Transport_Company implements Transport_Company
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer ' . $token,
         ];
-        // $data =[
-        //  "cityId"=> $body['id'] 0, 
-        //  "customWeight"=> 0,
-        //  "noItems"=> count($body['products']) 0,
-        //  "price"=> $body['total'] ,
-        //  "productDescrp"=> "", 
-        //  "storeName"=> "", 
-        //  "receiverPhone"=> $body['billing_phone'],
-        //  "customWeightMeta"=> "",
-        //  "address"=> $body['billing_address_1']." ".$body['billing_address_2'],
-        //  "notes"=> "", 
-        // ]
+        $order_data = [
+            "cityId" => $data['city'] ?? 1,
+            "customWeight" => 1,
+            "noItems" => $data['qty'],
+            "price" => $data['price'],
+            "productDescrp" => $data['description'],
+            "storeName" => "",
+            "receiverPhone" => $data['phone'],
+            "customWeightMeta" => "",
+            "address" => $data['address'],
+            "notes" => "",
+        ];
 
         $response = wp_remote_post($this->url . '/ApiEndpoints', [
             'method'  => 'POST',
-            'body'    => json_encode($data),
+            'body'    => json_encode($order_data),
             'headers' => $headers,
         ]);
 
@@ -342,7 +343,7 @@ class Camex_Transport_Company implements Transport_Company
         if (isset($decoded_body['type']) && $decoded_body['type'] === 1) {
             $order_id = get_option('current_order');
             $order = wc_get_order($order_id);
-            $order->update_meta_data('package-code', $decoded_body['TraceId']);
+            $order->update_meta_data('package-code', $decoded_body['content']);
             $order->save();
 
             wp_send_json_success([
