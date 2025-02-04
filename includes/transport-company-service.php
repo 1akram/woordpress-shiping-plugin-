@@ -250,7 +250,6 @@ class Camex_Transport_Company implements Transport_Company
 
     public function authenticate(): string
     {
-        return "";
         $params = ['providerKey' => $_ENV['CAMEX_PROVIDER_KEY'], 'clientKey' => $_ENV['CAMEX_CLIENT_KEY']];
         $queryString = http_build_query($params);
         $url = $this->url . '/ApiEndpoints/Login?' . $queryString;
@@ -288,6 +287,39 @@ class Camex_Transport_Company implements Transport_Company
         );
     }
 
+    private function getStoreName(): string
+    {
+        $token = get_option('active_company_token');
+
+        if (!$token) {
+            throw new Exception('Authentication token is missing. Please log in again.');
+        }
+
+        $headers = [
+            'Authorization: Bearer ' . $token,
+        ];
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->url . '/ApiEndpoints/Stores?culture=ar-LY');
+        curl_setopt($ch, CURLOPT_HTTPGET, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt(
+            $ch,
+            CURLOPT_HTTPHEADER,
+            $headers
+        );
+        $response = curl_exec($ch);
+        if (curl_errno($ch)) {
+            throw new Exception('Error during fetching the stores request: ' . curl_error($ch));
+        }
+        curl_close($ch);
+        $decoded_response = json_decode($response, true);
+        if ($decoded_response['type'] == 2 || $decoded_response['type'] == 3) {
+            throw new Exception('Fetching stores failed. error :' . $decoded_response['messages']);
+        }
+        $store = $decoded_response['content'][0];
+        return $store;
+    }
+
     public function requestDelivery(array $data): void
     {
         $token = get_option('active_company_token');
@@ -300,15 +332,21 @@ class Camex_Transport_Company implements Transport_Company
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer ' . $token,
         ];
+
+        $storeName = $this->getStoreName();
         $order_data = [
             "cityId" => $data['city'] ?? 1,
-            "customWeight" => 1,
+            // "customWeight" => 1,
             "noItems" => $data['qty'],
             "price" => $data['price'],
             "productDescrp" => $data['description'],
-            "storeName" => "",
+            "storeName" => $storeName,
             "receiverPhone" => $data['phone'],
-            "customWeightMeta" => "",
+            // "customWeightMeta" => [
+            //     'height' => 0,
+            //     'width' => 0,
+            //     'length' =>  0
+            // ],
             "address" => $data['address'],
             "notes" => "",
         ];
@@ -348,7 +386,7 @@ class Camex_Transport_Company implements Transport_Company
 
             wp_send_json_success([
                 'message' =>
-                $decoded_body['message'],
+                "Request sent with success",
             ]);
         } else {
             // $error_message = $decoded_body['message'] ?? 'Unknown error occurred while processing the delivery request.';
