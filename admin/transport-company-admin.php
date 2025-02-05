@@ -365,7 +365,7 @@ class Transportation_Company_Admin
 		{
 			$payload = $request->get_json_params();
 
-			if ($payload['secretKey'] !== "secretKey")
+			if ($payload['secretKey'] !== $_ENV['CAMEX_SECRET_KEY'])
 				return new WP_Error('invalid_secret', 'Invalid secret key.', array('status' => 400));
 
 			if (!empty($payload)) {
