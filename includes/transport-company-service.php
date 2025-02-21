@@ -143,7 +143,7 @@ class Vanex_Transport_Company implements Transport_Company
         ];
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->url . '/city/names');
+        curl_setopt($ch, CURLOPT_URL, $this->url . '/prices');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
@@ -434,6 +434,154 @@ class Camex_Transport_Company implements Transport_Company
             throw new Exception('Error fetching cities: ' . curl_error($ch));
         }
         return $decoded_response['content'];
+    }
+}
+
+class Codex_Transport_Company implements Transport_Company
+{
+    private string $url;
+
+    public function __construct()
+    {
+        $this->url =
+            $_ENV['CODEX_API'];
+    }
+
+    public function authenticate(): string
+    {
+        $data = ['email' => $_ENV['CODEX_EMAIL'], 'password' => $_ENV['CODEX_PASSWORD']];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->url . '/login');
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            throw new Exception('Error during authentication: ' . curl_error($ch));
+        }
+
+        curl_close($ch);
+        $decoded_response = json_decode($response, true);
+        if (!isset($decoded_response['data']['token'])) {
+            throw new Exception('Authentication failed. Invalid response format.');
+        }
+        $access_token = $decoded_response['data']['token'];
+        update_option('active_company_token', $access_token);
+        return $access_token;
+    }
+
+    public function insertCity(array $city): void
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+        $wpdb->insert(
+            $table_name,
+            array(
+                "id" => $city['id'],
+                "name" => $city['name'],
+                "price" => $city['price'],
+            )
+        );
+    }
+
+    public function requestDelivery(array $data): void
+    {
+        $token = get_option('active_company_token');
+
+        if (!$token) {
+            throw new Exception('Authentication token is missing. Please log in again.');
+        }
+
+        $headers = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ];
+
+        $order_data = [
+            'desc' => $data['description'],
+            'customer_name' => $data['reciever'],
+            'qty' => $data['qty'],
+            'recipient_number' => $data['phone'],
+            'product_price' => $data['price'],
+            'address' => $data['address'],
+            'delivery_on' => 'customer',
+            'to_city_id' => $data['city'],
+        ];
+
+
+        $response = wp_remote_post($this->url . '/parcels/store', [
+            'method'  => 'POST',
+            'body'    => json_encode($order_data),
+            'headers' => $headers,
+        ]);
+
+        if (is_wp_error($response)) {
+            wp_send_json_error([
+                'message' => $response->get_error_message(),
+            ]);
+            return;
+        }
+
+        // Retrieve and decode the response body.
+        $body = wp_remote_retrieve_body($response);
+        $decoded_body = json_decode($body, true);
+
+        if (!$decoded_body['errors']) {
+            $order_id = get_option('current_order');
+            $order = wc_get_order($order_id);
+            $order->update_meta_data('package-code', $decoded_body['data']['parcel_id']);
+            $order->save();
+
+            wp_send_json_success([
+                'message' =>
+                "Request sent with success",
+            ]);
+        } else {
+            error_log(json_encode($response));
+            wp_send_json_error([
+                'message' => $decoded_body['errors'],
+            ]);
+        }
+    }
+
+    function getCitiesFromDB(): array
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'cities';
+
+        $results = $wpdb->get_results("SELECT * FROM $table_name", OBJECT);
+        return $results;
+    }
+
+    public function getCitiesFromServer(): array
+    {
+        $token = get_option('active_company_token');
+
+        if (!$token) {
+            throw new Exception('Authentication token is missing. Please log in again.');
+        }
+
+        $headers = [
+            'Authorization: Bearer ' . $token,
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->url . '/prices');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $decoded_response = json_decode($response, true);
+        if ($decoded_response['errors']) {
+            throw new Exception('Error fetching cities: ' . curl_error($ch));
+        }
+        return $decoded_response['data'];
     }
 }
 

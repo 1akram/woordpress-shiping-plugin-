@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
         "شركة Vanex" => "Vanex_Transport_Company",
         "شركة المعيار" => "Miaar_Transport_Company",
         "شركة Camex" => "Camex_Transport_Company",
+        "شركة Codex" => "Codex_Transport_Company",
     ];
 
     $active_company = get_option('active_company', 'شركة Vanex');
@@ -66,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['companies'])) {
                             <option value="شركة Vanex" <?php selected(get_option('active_company'), 'شركة Vanex'); ?>>شركة Vanex</option>
                             <option value="شركة المعيار" <?php selected(get_option('active_company'), 'شركة المعيار'); ?>>شركة المعيار</option>
                             <option value="شركة Camex" <?php selected(get_option('active_company'), 'شركة Camex'); ?>>شركة Camex</option>
+                            <option value="شركة Codex" <?php selected(get_option('active_company'), 'شركة Codex'); ?>>شركة Codex</option>
                         </select>
                     </div>
                 </div>

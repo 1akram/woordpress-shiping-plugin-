@@ -286,6 +286,7 @@ class Transportation_Company_Admin
 				"شركة Vanex" => "Vanex_Transport_Company",
 				"شركة المعيار" => "Miaar_Transport_Company",
 				"شركة Camex" => "Camex_Transport_Company",
+				"شركة Codex" => "Codex_Transport_Company",
 			];
 
 			if (!isset($classMap[$active_company]) || !class_exists($classMap[$active_company])) {
